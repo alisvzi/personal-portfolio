@@ -1,6 +1,6 @@
+import { PortfolioData, Project } from "@/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { PortfolioData, Project } from "@/types";
 import { API_ENDPOINTS, DEFAULT_CONTENT } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
@@ -10,21 +10,25 @@ export function cn(...inputs: ClassValue[]) {
 // ---------- Data Fetching Utils ----------
 export async function fetchPortfolioData(): Promise<PortfolioData> {
   try {
-    const [projectsRes, skillsRes, contentRes] = await Promise.all([
-      fetch(API_ENDPOINTS.projects),
-      fetch(API_ENDPOINTS.skills),
-      fetch(API_ENDPOINTS.content),
-    ]);
+    const [projectsRes, skillsRes, contentRes, experiencesRes] =
+      await Promise.all([
+        fetch(API_ENDPOINTS.projects),
+        fetch(API_ENDPOINTS.skills),
+        fetch(API_ENDPOINTS.content),
+        fetch(API_ENDPOINTS.experiences),
+      ]);
 
-    const [projects, skills, content] = await Promise.all([
+    const [projects, skills, content, experiences] = await Promise.all([
       projectsRes.ok ? projectsRes.json() : [],
       skillsRes.ok ? skillsRes.json() : [],
       contentRes.ok ? contentRes.json() : {},
+      experiencesRes.ok ? experiencesRes.json() : [],
     ]);
 
     return {
       projects: projects || [],
       skills: skills || [],
+      experiences: experiences || [],
       content: { ...DEFAULT_CONTENT, ...content },
     };
   } catch (error) {
@@ -32,6 +36,7 @@ export async function fetchPortfolioData(): Promise<PortfolioData> {
     return {
       projects: [],
       skills: [],
+      experiences: [],
       content: DEFAULT_CONTENT,
     };
   }
@@ -71,7 +76,7 @@ export function getGithubUrl(project: Project): string {
 // ---------- Animation Utils ----------
 export function getStaggerDelay(
   index: number,
-  baseDelay: number = 0.1,
+  baseDelay: number = 0.1
 ): number {
   return index * baseDelay;
 }
@@ -107,4 +112,14 @@ export function generateMetaDescription(section?: string): string {
   return section && descriptions[section as keyof typeof descriptions]
     ? descriptions[section as keyof typeof descriptions]
     : "Portfolio of John Doe - Frontend Developer building exceptional digital experiences with React, Next.js, and modern web technologies";
+}
+
+export function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }

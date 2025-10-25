@@ -159,26 +159,33 @@ export function ContactSection({ content, className }: ContactSectionProps) {
           {/* Section Title */}
           <AnimatedItem>
             <div className="text-center mb-16">
-              <div className="flex items-center justify-center mb-8">
+              <div className="flex flex-col items-center justify-center mb-8">
                 <motion.span
-                  className="text-[#64ffda] font-mono text-lg mr-4"
+                  className="text-[#64ffda] font-mono text-lg mb-4"
                   initial={{ opacity: 0, scale: 0 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
                   viewport={{ once: true }}
                 >
-                  04.
+                  04
                 </motion.span>
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#ccd6f6]">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#ccd6f6] flex items-center">
+                  <motion.div
+                    className="flex-1 h-px bg-gradient-to-l from-[#233554] to-transparent mr-8 w-32"
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 1 }}
+                    transition={{ delay: 0.5, duration: 0.8 }}
+                    viewport={{ once: true }}
+                  />
                   Get In Touch
+                  <motion.div
+                    className="flex-1 h-px bg-gradient-to-l from-[#233554] to-transparent ml-8 w-32"
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: -1 }}
+                    transition={{ delay: 0.5, duration: 0.8 }}
+                    viewport={{ once: true }}
+                  />
                 </h2>
-                <motion.div
-                  className="flex-1 h-px bg-gradient-to-r from-[#233554] to-transparent ml-8 max-w-32"
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
-                  viewport={{ once: true }}
-                />
               </div>
 
               <motion.div
@@ -321,19 +328,19 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         value={formData.name}
                         onChange={handleInputChange}
                         className={cn(
-                          "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
-                          "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
-                          errors.name
-                            ? "border-red-500"
-                            : "border-[#233554] hover:border-[#64ffda]/30",
-                        )}
-                        placeholder="Your Name"
-                      />
-                      {errors.name && (
-                        <p className="text-red-400 text-xs mt-1">
-                          {errors.name}
-                        </p>
+                        "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
+                        "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
+                        errors.name
+                          ? "border-app-error"
+                          : "border-[#233554] hover:border-[#64ffda]/30",
                       )}
+                      placeholder="Your Name"
+                    />
+                    {errors.name && (
+                      <p className="text-app-error-text text-xs mt-1">
+                        {errors.name}
+                      </p>
+                    )}
                     </div>
 
                     <div>
@@ -349,13 +356,13 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                           "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
                           "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                           errors.email
-                            ? "border-red-500"
+                            ? "border-app-error"
                             : "border-[#233554] hover:border-[#64ffda]/30",
                         )}
                         placeholder="your.email@example.com"
                       />
                       {errors.email && (
-                        <p className="text-red-400 text-xs mt-1">
+                        <p className="text-app-error-text text-xs mt-1">
                           {errors.email}
                         </p>
                       )}
@@ -375,13 +382,13 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
                         "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                         errors.subject
-                          ? "border-red-500"
+                          ? "border-app-error"
                           : "border-[#233554] hover:border-[#64ffda]/30",
                       )}
                       placeholder="What's this about?"
                     />
                     {errors.subject && (
-                      <p className="text-red-400 text-xs mt-1">
+                      <p className="text-app-error-text text-xs mt-1">
                         {errors.subject}
                       </p>
                     )}
@@ -400,13 +407,13 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300 resize-none",
                         "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                         errors.message
-                          ? "border-red-500"
+                          ? "border-app-error"
                           : "border-[#233554] hover:border-[#64ffda]/30",
                       )}
                       placeholder="Tell me about your project or just say hello!"
                     />
                     {errors.message && (
-                      <p className="text-red-400 text-xs mt-1">
+                      <p className="text-app-error-text text-xs mt-1">
                         {errors.message}
                       </p>
                     )}

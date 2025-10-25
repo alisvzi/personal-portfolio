@@ -1,19 +1,26 @@
 export interface Project {
   id: string;
   title: string;
+  titleFa?: string;
   description: string;
+  descriptionFa?: string;
   imageUrl: string;
+  imagePlaceholderUrl: string;
   githubUrl: string;
   projectUrl: string;
   technologies: string;
   featured?: boolean;
+  order?: number;
 }
 
 export interface Skill {
   id: string;
   name: string;
+  nameFa?: string;
   category?: string;
   level?: number;
+  icon?: string;
+  order?: number;
 }
 
 export interface Experience {
@@ -23,10 +30,10 @@ export interface Experience {
   period: string;
   description: string;
   technologies: string[];
+  order?: number;
 }
 
 export interface Content {
-  heroBadge: string;
   heroTitle: string;
   heroSubtitle: string;
   heroDescription: string;
@@ -44,6 +51,7 @@ export interface NavigationSection {
 export interface PortfolioData {
   projects: Project[];
   skills: Skill[];
+  experiences: Experience[];
   content: Content;
 }
 

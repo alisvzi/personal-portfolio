@@ -5,12 +5,12 @@ import { ChevronRight } from "lucide-react";
 
 import { Content } from "../../types";
 
+import { cn, scrollToSection } from "../../lib/utils";
 import {
   AnimatedContainer,
   AnimatedItem,
   AnimatedText,
 } from "../ui/AnimatedContainer";
-import { scrollToSection, cn } from "../../lib/utils";
 
 interface HeroSectionProps {
   content: Content;
@@ -28,7 +28,7 @@ export function HeroSection({ content, className }: HeroSectionProps) {
       className={cn(
         "min-h-screen flex flex-col items-center justify-center text-center px-4",
         "relative overflow-hidden",
-        className,
+        className
       )}
     >
       {/* Background decorative elements */}
@@ -70,7 +70,7 @@ export function HeroSection({ content, className }: HeroSectionProps) {
             className="inline-block  text-[#64ffda] font-mono text-lg"
             transition={{ duration: 0.2 }}
           >
-            {content.heroBadge}
+            Hi, my name is
           </motion.span>
         </AnimatedItem>
 
@@ -112,7 +112,7 @@ export function HeroSection({ content, className }: HeroSectionProps) {
               "transition-all duration-300",
               "hover:bg-[#64ffda]/10 hover:shadow-lg hover:shadow-[#64ffda]/25",
               "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50",
-              "active:scale-95",
+              "active:scale-95"
             )}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

@@ -1,10 +1,10 @@
-import { motion } from "framer-motion";
-import { Skill, Content } from "@/types";
 import {
   AnimatedContainer,
   AnimatedItem,
 } from "@/components/ui/AnimatedContainer";
 import { cn } from "@/lib/utils";
+import { Content, Skill } from "@/types";
+import { motion } from "framer-motion";
 
 interface AboutSectionProps {
   content: Content;
@@ -25,7 +25,7 @@ export function AboutSection({
       className={cn(
         "min-h-screen py-20 flex items-center",
         "relative overflow-hidden",
-        className,
+        className
       )}
     >
       {/* Background decorative elements */}
@@ -117,8 +117,8 @@ export function AboutSection({
                   >
                     {displayedSkills.map((skill) => (
                       <motion.li
-                        key={skill.id}
-                        className="flex items-center text-[#8892b0] text-sm md:text-base group"
+                        key={skill._id}
+                        className="flex flex-col gap-3 text-[#8892b0] text-sm md:text-base group"
                         variants={{
                           hidden: { opacity: 0, x: -20 },
                           visible: {
@@ -135,23 +135,34 @@ export function AboutSection({
                           transition: { duration: 0.2 },
                         }}
                       >
-                        <motion.span
-                          className="text-[#64ffda] mr-3 text-sm"
-                          animate={{
-                            rotate: [0, 180, 360],
-                          }}
-                          transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            repeatDelay: 3,
-                            ease: "easeInOut",
-                          }}
-                        >
-                          ▶
-                        </motion.span>
-                        <span className="group-hover:text-[#64ffda] transition-colors duration-200">
-                          {skill.name}
-                        </span>
+                        <div className="flex items-center">
+                          <motion.span
+                            className="text-[#64ffda] mr-3 text-sm"
+                            animate={{
+                              rotate: [0, 180, 360],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              repeatDelay: 3,
+                              ease: "easeInOut",
+                            }}
+                          >
+                            ▶
+                          </motion.span>
+                          <span className="group-hover:text-[#64ffda] transition-colors duration-200">
+                            {skill.name}
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-[#233554] rounded-full h-2">
+                          <motion.div
+                            className="bg-[#64ffda] h-2 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${skill.level}%` }}
+                            transition={{ duration: 1 }}
+                          />
+                        </div>
                       </motion.li>
                     ))}
                   </motion.ul>

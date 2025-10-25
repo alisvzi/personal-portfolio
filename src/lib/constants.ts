@@ -1,5 +1,5 @@
-import { User, Briefcase, FolderOpen, Mail, Home } from "lucide-react";
-import { NavigationSection, Experience } from "@/types";
+import { Experience, NavigationSection } from "@/types";
+import { Briefcase, FolderOpen, Home, Mail, User } from "lucide-react";
 
 // ---------- Navigation Configuration ----------
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
@@ -12,13 +12,10 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
 
 // ---------- Default Content ----------
 export const DEFAULT_CONTENT = {
-  heroBadge: "Hi, my name is",
   heroTitle: "Ali Soveizi",
   heroSubtitle: "Frontend Developer",
   heroDescription: "I build things for the web.",
-  aboutText: `Hello! I'm Ali, a frontend developer based in Tehran, Iran. I enjoy creating beautiful,
-    functional, and user-centered digital experiences. I'm passionate about building excellent software
-    that improves the lives of those around me.`,
+  aboutText: `Hi, I’m Ali Soveizi, a Front-End Developer from Mashhad, Iran, with a Bachelor’s in Computer Engineering and currently pursuing my Master’s at Azad University of Mashhad. I build clean, responsive web experiences using React and Next.js, and I enjoy exploring new frameworks, contributing to open-source projects, and learning about design and UX. I’m open to opportunities to grow as a developer and collaborate with creative teams.`,
   contactEmail: "ali.soveizi@example.com",
   contactPhone: "+98 912 345 6789",
 };
@@ -66,6 +63,7 @@ export const API_ENDPOINTS = {
   projects: "/api/projects",
   skills: "/api/skills",
   content: "/api/content",
+  experiences: "/api/experiences",
 } as const;
 
 // ---------- SEO Schema Configuration ----------

@@ -2,11 +2,10 @@ import { Suspense } from "react";
 
 import { Metadata } from "next";
 
-import Portfolio from "../components/Portfolio";
-
-import { FullScreenLoading } from "../components/ui/LoadingSpinner";
-
-import { SEO_CONFIG, PERSON_SCHEMA } from "../lib/constants";
+import Portfolio from "@/components/Portfolio";
+import { FullScreenLoading } from "@/components/ui/LoadingSpinner";
+import { PERSON_SCHEMA, SEO_CONFIG } from "@/lib/constants";
+import { ensureAdmin } from "@/lib/utils/seedAdmin";
 
 export const metadata: Metadata = {
   title: SEO_CONFIG.defaultTitle,
@@ -51,7 +50,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -73,13 +72,14 @@ export default function HomePage() {
     },
   };
 
+  await ensureAdmin();
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <main className="min-h-screen bg-[#0a192f] text-[#ccd6f6]">
+      <main className="min-h-screen">
         <Suspense
           fallback={<FullScreenLoading message="Loading portfolio..." />}
         >

@@ -1,11 +1,11 @@
-import { motion } from "framer-motion";
-import { Experience } from "@/types";
 import {
   AnimatedContainer,
   AnimatedItem,
 } from "@/components/ui/AnimatedContainer";
-import { cn } from "@/lib/utils";
 import { EXPERIENCE_DATA } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import { Experience } from "@/types";
+import { motion } from "framer-motion";
 
 interface ExperienceSectionProps {
   experience?: Experience[];
@@ -22,30 +22,17 @@ export function ExperienceSection({
       className={cn(
         "min-h-screen py-20 flex items-center",
         "relative overflow-hidden",
-        className,
+        className
       )}
     >
       {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-[#64ffda]/3 blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -50, 0],
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
-      </div>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none"></div>
 
-      <div className="max-w-6xl mx-auto px-4 relative z-10">
+      <div className="max-w-6xl w-full mx-auto px-4 relative z-10">
         <AnimatedContainer
           variant="slideRight"
           viewport={{ once: true, amount: 0.3 }}
-          className="space-y-12"
+          className="space-y-12 s"
         >
           {/* Section Title */}
           <AnimatedItem>

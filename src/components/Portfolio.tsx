@@ -1,15 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { FullScreenLoading } from "./ui/LoadingSpinner";
 import { usePortfolioData } from "@/hooks/usePortfolioData";
 import { fadeIn } from "@/lib/animations";
-import Navigation from "./layout/Navigation";
-import HeroSection from "./sections/HeroSection";
+import { motion } from "framer-motion";
 import AboutSection from "./sections/AboutSection";
-import ExperienceSection from "./sections/ExperienceSection";
-import WorkSection from "./sections/WorkSection";
 import ContactSection from "./sections/ContactSection";
+import ExperienceSection from "./sections/ExperienceSection";
+import HeroSection from "./sections/HeroSection";
+import WorkSection from "./sections/WorkSection";
+import { FullScreenLoading } from "./ui/LoadingSpinner";
 
 interface PortfolioProps {
   className?: string;
@@ -24,7 +23,11 @@ export default function Portfolio({ className }: PortfolioProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0a192f] flex flex-col items-center justify-center">
+      <div
+        className={
+          "min-h-screen bg-[#0a192f] flex flex-col items-center justify-center"
+        }
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -51,11 +54,13 @@ export default function Portfolio({ className }: PortfolioProps) {
     );
   }
 
-  const { projects, skills, content } = data;
+  const { projects, skills, content, experiences } = data;
 
   return (
     <motion.div
-      className={`min-h-screen bg-[#0a192f] text-[#ccd6f6] font-sans ${className || ""}`}
+      className={`min-h-screen bg-[#0a192f] text-[#ccd6f6] font-sans ${
+        className || ""
+      }`}
       initial="hidden"
       animate="visible"
       variants={fadeIn}
@@ -68,13 +73,13 @@ export default function Portfolio({ className }: PortfolioProps) {
         {/* Content Sections Container */}
         <div className="mx-auto space-y-32">
           {/* About Section */}
-          <AboutSection content={content} skills={skills} />
+          <AboutSection content={content} skills={skills?.skills} />
 
           {/* Experience Section */}
-          <ExperienceSection />
+          <ExperienceSection experience={experiences?.experiences} />
 
           {/* Work/Projects Section */}
-          <WorkSection projects={projects} />
+          <WorkSection projects={projects?.projects} />
 
           {/* Contact Section */}
           <ContactSection content={content} />
