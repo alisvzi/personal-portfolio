@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { connectDB } from "@/lib/db/mongodb";
 import ProjectModel from "@/lib/models/Project";
+import { createPlaceholderImage } from "@/lib/utils/image/placeholder";
+import { generateThumbHash } from "@/lib/utils/image/thumbhash";
+import { saveImageFile } from "@/lib/utils/image/upload";
 
 // Project type definition
 type Project = {
@@ -23,15 +26,31 @@ type Project = {
 // Create a new project
 export async function createProject(formData: FormData) {
   // Validate required fields
+  console.log(formData);
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const imageUrl = formData.get("imageUrl") as string;
+  const file = formData.get("imageUrl") as File | null;
 
-  if (!title || !description || !imageUrl) {
+  if (!title || !description || !file) {
     return {
       success: false,
       error: "Title, description and image URL are required",
     };
+  }
+
+  let imageUrl: string;
+  let thumbhash: string | null;
+
+  if (file) {
+    const { filePath, publicUrl } = await saveImageFile(file, "projects");
+    imageUrl = publicUrl;
+    thumbhash = await generateThumbHash(filePath);
+  } else {
+    const { filePath, publicUrl } = await createPlaceholderImage({
+      text: title || "Project",
+    });
+    imageUrl = publicUrl;
+    thumbhash = await generateThumbHash(filePath);
   }
 
   try {
@@ -48,6 +67,7 @@ export async function createProject(formData: FormData) {
       technologies: formData.get("technologies") as string,
       featured: formData.get("featured") === "on", // Checkbox value is "on" when checked
       order: parseInt(formData.get("order") as string) || 0,
+      imagePlaceholderUrl: thumbhash!,
     };
 
     await ProjectModel.create(project);

@@ -1,3 +1,4 @@
+"use client";
 import {
   AnimatedContainer,
   AnimatedItem,
@@ -188,7 +189,6 @@ export function ExperienceSection({
                           }}
                           transition={{
                             duration: 2,
-                            repeat: Infinity,
                             ease: "easeInOut",
                           }}
                         />
@@ -202,36 +202,6 @@ export function ExperienceSection({
               </AnimatedItem>
             ))}
           </div>
-
-          {/* Call to Action */}
-          <AnimatedItem variant="fadeSlideUp" className="text-center pt-12">
-            <motion.div
-              className="inline-flex items-center space-x-2 text-[#8892b0] hover:text-[#64ffda] transition-colors cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <span className="font-mono text-sm">View Full Resume</span>
-              <motion.svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                animate={{ x: [0, 5, 0] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </motion.svg>
-            </motion.div>
-          </AnimatedItem>
         </AnimatedContainer>
       </div>
     </section>

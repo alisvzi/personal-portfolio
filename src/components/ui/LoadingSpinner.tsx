@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -32,14 +32,13 @@ export function LoadingSpinner({
       animate={{ rotate: 360 }}
       transition={{
         duration: 1,
-        repeat: Infinity,
         ease: "linear",
       }}
       className={cn(
         "rounded-full",
         sizeClasses[size],
         colorClasses[color],
-        className,
+        className
       )}
     />
   );
@@ -49,7 +48,9 @@ interface FullScreenLoadingProps {
   message?: string;
 }
 
-export function FullScreenLoading({ message = "Loading..." }: FullScreenLoadingProps) {
+export function FullScreenLoading({
+  message = "Loading...",
+}: FullScreenLoadingProps) {
   return (
     <div className="min-h-screen bg-[#0a192f] flex flex-col items-center justify-center">
       <LoadingSpinner size="xl" />
@@ -82,7 +83,6 @@ export function LoadingDots({ className }: LoadingDotsProps) {
           }}
           transition={{
             duration: 0.8,
-            repeat: Infinity,
             delay: i * 0.2,
             ease: "easeInOut",
           }}

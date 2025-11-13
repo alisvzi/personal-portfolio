@@ -1,15 +1,16 @@
+"use client";
+import { Content } from "@/types";
 import { motion } from "framer-motion";
 import {
-  Mail,
-  Phone,
-  MapPin,
-  Send,
   Github,
   Linkedin,
+  Mail,
+  MapPin,
+  Phone,
+  Send,
   Twitter,
 } from "lucide-react";
 import { useState } from "react";
-import { Content } from "@/types";
 
 import { AnimatedContainer, AnimatedItem } from "../ui/AnimatedContainer";
 
@@ -73,7 +74,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -92,8 +93,21 @@ export function ContactSection({ content, className }: ContactSectionProps) {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call - replace with actual implementation
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim(),
+          message: formData.message.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || "Failed to send message");
+      }
 
       setIsSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
@@ -131,7 +145,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
       className={cn(
         "min-h-screen py-20 flex items-center",
         "relative overflow-hidden",
-        className,
+        className
       )}
     >
       {/* Background decorative elements */}
@@ -144,7 +158,6 @@ export function ContactSection({ content, className }: ContactSectionProps) {
           }}
           transition={{
             duration: 8,
-            repeat: Infinity,
             ease: "easeInOut",
           }}
         />
@@ -287,7 +300,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                       href={social.url}
                       className={cn(
                         "p-3 rounded-full bg-[#112240] border border-[#233554] text-[#8892b0] transition-all duration-300",
-                        social.color,
+                        social.color
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -328,19 +341,19 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         value={formData.name}
                         onChange={handleInputChange}
                         className={cn(
-                        "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
-                        "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
-                        errors.name
-                          ? "border-app-error"
-                          : "border-[#233554] hover:border-[#64ffda]/30",
+                          "w-full px-4 py-3 bg-[#112240] border rounded-lg text-[#ccd6f6] transition-all duration-300",
+                          "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
+                          errors.name
+                            ? "border-app-error"
+                            : "border-[#233554] hover:border-[#64ffda]/30"
+                        )}
+                        placeholder="Your Name"
+                      />
+                      {errors.name && (
+                        <p className="text-app-error-text text-xs mt-1">
+                          {errors.name}
+                        </p>
                       )}
-                      placeholder="Your Name"
-                    />
-                    {errors.name && (
-                      <p className="text-app-error-text text-xs mt-1">
-                        {errors.name}
-                      </p>
-                    )}
                     </div>
 
                     <div>
@@ -357,7 +370,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                           "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                           errors.email
                             ? "border-app-error"
-                            : "border-[#233554] hover:border-[#64ffda]/30",
+                            : "border-[#233554] hover:border-[#64ffda]/30"
                         )}
                         placeholder="your.email@example.com"
                       />
@@ -383,7 +396,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                         errors.subject
                           ? "border-app-error"
-                          : "border-[#233554] hover:border-[#64ffda]/30",
+                          : "border-[#233554] hover:border-[#64ffda]/30"
                       )}
                       placeholder="What's this about?"
                     />
@@ -408,7 +421,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                         "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50 focus:border-[#64ffda]",
                         errors.message
                           ? "border-app-error"
-                          : "border-[#233554] hover:border-[#64ffda]/30",
+                          : "border-[#233554] hover:border-[#64ffda]/30"
                       )}
                       placeholder="Tell me about your project or just say hello!"
                     />
@@ -427,7 +440,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                       "bg-[#64ffda]/10 border border-[#64ffda] text-[#64ffda] font-mono",
                       "hover:bg-[#64ffda]/20 hover:shadow-lg hover:shadow-[#64ffda]/25",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50",
+                      "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50"
                     )}
                     whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                     whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
@@ -485,26 +498,18 @@ export function ContactSection({ content, className }: ContactSectionProps) {
               viewport={{ once: true }}
             >
               <p className="text-[#8892b0] text-lg">Looking for my resume?</p>
-              <motion.a
+              <a
                 href="/resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-8 py-4 border border-[#64ffda] text-[#64ffda] rounded-lg hover:bg-[#64ffda]/10 transition-all duration-300 font-mono mb-20"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
               >
                 Download Resume
-                <motion.svg
+                <svg
                   className="ml-2 w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
-                  animate={{ y: [0, 3, 0] }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
                 >
                   <path
                     strokeLinecap="round"
@@ -512,8 +517,8 @@ export function ContactSection({ content, className }: ContactSectionProps) {
                     strokeWidth={2}
                     d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"
                   />
-                </motion.svg>
-              </motion.a>
+                </svg>
+              </a>
             </motion.div>
           </AnimatedItem>
         </AnimatedContainer>

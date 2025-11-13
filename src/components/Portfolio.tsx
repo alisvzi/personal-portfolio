@@ -96,7 +96,6 @@ export default function Portfolio({ className }: PortfolioProps) {
             }}
             transition={{
               duration: 30,
-              repeat: Infinity,
               ease: "linear",
             }}
           />
@@ -109,7 +108,6 @@ export default function Portfolio({ className }: PortfolioProps) {
             }}
             transition={{
               duration: 25,
-              repeat: Infinity,
               ease: "linear",
             }}
           />

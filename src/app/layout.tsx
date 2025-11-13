@@ -1,3 +1,4 @@
+import SideToolBars from "@/components/layout/SideToolBars";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -95,7 +96,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <SideToolBars>{children}</SideToolBars>
       </body>
     </html>
   );

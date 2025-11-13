@@ -2,7 +2,11 @@ import { Suspense } from "react";
 
 import { Metadata } from "next";
 
-import Portfolio from "@/components/Portfolio";
+import HeroSectionServer from "@/components/sections/server/HeroSectionServer";
+import AboutSectionServer from "@/components/sections/server/AboutSectionServer";
+import ExperienceSectionServer from "@/components/sections/server/ExperienceSectionServer";
+import WorkSectionServer from "@/components/sections/server/WorkSectionServer";
+import ContactSectionServer from "@/components/sections/server/ContactSectionServer";
 import { FullScreenLoading } from "@/components/ui/LoadingSpinner";
 import { PERSON_SCHEMA, SEO_CONFIG } from "@/lib/constants";
 import { ensureAdmin } from "@/lib/utils/seedAdmin";
@@ -83,7 +87,20 @@ export default async function HomePage() {
         <Suspense
           fallback={<FullScreenLoading message="Loading portfolio..." />}
         >
-          <Portfolio />
+          {/* Hero Section (Server Fetch) */}
+          {/* About Section (Server Fetch) */}
+          {/* Experience Section (Server Fetch) */}
+          {/* Work Section (Server Fetch) */}
+          {/* Contact Section (Server Fetch) */}
+          {/* Streaming will render as each section resolves */}
+          {/* Using a single Suspense to keep structure simple */}
+          <HeroSectionServer />
+          <div className="mx-auto space-y-32">
+            <AboutSectionServer />
+            <ExperienceSectionServer />
+            <WorkSectionServer />
+            <ContactSectionServer />
+          </div>
         </Suspense>
       </main>
     </>

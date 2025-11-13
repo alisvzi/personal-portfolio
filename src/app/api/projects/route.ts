@@ -3,6 +3,7 @@ import { handleApiError } from "@/lib/errors";
 import project from "@/lib/models/Project";
 import { generateThumbHash } from "@/lib/utils/image/thumbhash";
 import { saveImageFile, deleteImageFile } from "@/lib/utils/image/upload";
+import { createPlaceholderImage } from "@/lib/utils/image/placeholder";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -30,31 +31,41 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const titleFa = formData.get("titleFa") as string | null;
+    const descriptionFa = formData.get("descriptionFa") as string | null;
     const githubUrl = formData.get("githubUrl") as string;
     const projectUrl = formData.get("projectUrl") as string;
     const technologies = formData.get("technologies") as string;
     const featured = formData.get("featured") === "true";
+    const orderRaw = formData.get("order") as string | null;
+    const order = orderRaw ? parseInt(orderRaw) || 0 : 0;
     const file = formData.get("image") as File | null;
 
-    if (!file) {
-      return NextResponse.json(
-        { error: "Image is required." },
-        { status: 400 },
-      );
-    }
+    let imageUrl: string;
+    let thumbhash: string | null;
 
-    const { filePath, publicUrl } = await saveImageFile(file, "projects");
-    const thumbhash = await generateThumbHash(filePath);
+    if (file) {
+      const { filePath, publicUrl } = await saveImageFile(file, "projects");
+      imageUrl = publicUrl;
+      thumbhash = await generateThumbHash(filePath);
+    } else {
+      const { filePath, publicUrl } = await createPlaceholderImage({ text: title || "Project" });
+      imageUrl = publicUrl;
+      thumbhash = await generateThumbHash(filePath);
+    }
 
     const newProject = await project.create({
       title,
       description,
+      titleFa: titleFa || undefined,
+      descriptionFa: descriptionFa || undefined,
       githubUrl,
       projectUrl,
       technologies,
       featured,
-      imageUrl: publicUrl,
-      imagePlaceholderUrl: thumbhash,
+      order,
+      imageUrl,
+      imagePlaceholderUrl: thumbhash!,
     });
 
     return NextResponse.json(
@@ -80,13 +91,6 @@ export async function PUT(request: NextRequest) {
 
     const formData = await request.formData();
     const id = formData.get("id") as string;
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const githubUrl = formData.get("githubUrl") as string;
-    const projectUrl = formData.get("projectUrl") as string;
-    const technologies = formData.get("technologies") as string;
-    const featured = formData.get("featured") === "true";
-    const file = formData.get("image") as File | null;
 
     const existingProject = await project.findById(id);
     if (!existingProject) {
@@ -95,6 +99,18 @@ export async function PUT(request: NextRequest) {
         { status: 404 },
       );
     }
+
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const titleFa = formData.get("titleFa") as string | null;
+    const descriptionFa = formData.get("descriptionFa") as string | null;
+    const githubUrl = formData.get("githubUrl") as string;
+    const projectUrl = formData.get("projectUrl") as string;
+    const technologies = formData.get("technologies") as string;
+    const featured = formData.get("featured") === "true";
+    const orderRaw = formData.get("order") as string | null;
+    const order = orderRaw ? parseInt(orderRaw) || 0 : existingProject.order;
+    const file = formData.get("image") as File | null;
 
     let imageUrl = existingProject.imageUrl;
     let imagePlaceholderUrl = existingProject.imagePlaceholderUrl;
@@ -108,10 +124,13 @@ export async function PUT(request: NextRequest) {
 
     existingProject.title = title;
     existingProject.description = description;
+    existingProject.titleFa = titleFa || existingProject.titleFa;
+    existingProject.descriptionFa = descriptionFa || existingProject.descriptionFa;
     existingProject.githubUrl = githubUrl;
     existingProject.projectUrl = projectUrl;
     existingProject.technologies = technologies;
     existingProject.featured = featured;
+    existingProject.order = order;
     existingProject.imageUrl = imageUrl;
     existingProject.imagePlaceholderUrl = imagePlaceholderUrl;
 

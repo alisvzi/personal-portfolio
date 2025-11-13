@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Edit, Plus, Save, Trash2 } from "lucide-react";
 import {
   createProject,
-  updateProject,
   deleteProject,
+  updateProject,
 } from "@/app/actions/projects";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 
 type Project = {
   id: string;
@@ -294,8 +294,9 @@ function ProjectForm({ project, onCancel, onSuccess }: ProjectFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL</Label>
+            <Label htmlFor="imageUrl">Image </Label>
             <Input
+              type="file"
               id="imageUrl"
               name="imageUrl"
               defaultValue={project.imageUrl}

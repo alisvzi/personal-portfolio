@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { useScrollSpy } from "../../hooks/useScrollSpy";
+import { fadeIn, slideInLeft } from "../../lib/animations";
 import { NAVIGATION_SECTIONS } from "../../lib/constants";
-import { scrollToSection, cn } from "../../lib/utils";
-import { slideInLeft, fadeIn } from "../../lib/animations";
+import { cn, scrollToSection } from "../../lib/utils";
 
 interface NavigationProps {
   className?: string;
@@ -22,11 +22,9 @@ export default function Navigation({ className }: NavigationProps) {
       initial="hidden"
       animate="visible"
       variants={slideInLeft}
-      className={cn(
-        "fixed bottom-0 left-0 right-0 h-20 flex justify-center items-center z-50",
-        "md:h-24 px-4", // Responsive height
-        className,
-      )}
+      className={
+        " fixed bottom-0 left-0 right-0 h-20 z-50 md:h-24 px-4 sm:w-[350px] mx-auto"
+      }
     >
       <motion.ul
         className="flex items-center justify-center space-x-4 bg-[#64ffda]/5 backdrop-blur-lg px-2 py-1 rounded-2xl border border-[#233554]/30 shadow-xl"
@@ -50,7 +48,7 @@ export default function Navigation({ className }: NavigationProps) {
                 "md:p-2", // Responsive padding
                 activeSection === section.id
                   ? "text-[#64ffda] font-medium"
-                  : "text-[#8892b0] hover:text-[#ccd6f6]",
+                  : "text-[#8892b0] hover:text-[#ccd6f6]"
               )}
               aria-label={`Navigate to ${section.name} section`}
             >

@@ -1,3 +1,4 @@
+"use client";
 import {
   AnimatedContainer,
   AnimatedItem,
@@ -5,6 +6,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Content, Skill } from "@/types";
 import { motion } from "framer-motion";
+import { Triangle } from "lucide-react";
+import Image from "next/image";
+import ImageProfile from "public/ptf.jpg";
 
 interface AboutSectionProps {
   content: Content;
@@ -38,7 +42,6 @@ export function AboutSection({
           }}
           transition={{
             duration: 8,
-            repeat: Infinity,
             ease: "easeInOut",
           }}
         />
@@ -143,12 +146,11 @@ export function AboutSection({
                             }}
                             transition={{
                               duration: 2,
-                              repeat: Infinity,
                               repeatDelay: 3,
                               ease: "easeInOut",
                             }}
                           >
-                            ▶
+                            <Triangle className="rotate-90 fill-[#64ffda] h-5" />
                           </motion.span>
                           <span className="group-hover:text-[#64ffda] transition-colors duration-200">
                             {skill.name}
@@ -220,7 +222,7 @@ export function AboutSection({
           {/* Image Side */}
           <AnimatedContainer
             variant="fadeScale"
-            className="flex justify-center md:justify-end"
+            className="hidden md:flex justify-center md:justify-end"
             viewport={{ once: true, amount: 0.3 }}
           >
             <div className="relative group">
@@ -237,9 +239,11 @@ export function AboutSection({
                   whileHover={{ opacity: 0.1 }}
                   transition={{ duration: 0.3 }}
                 />
+                {/* IMAGE */}
 
                 {/* Image Placeholder */}
-                <div className="absolute inset-4 bg-gradient-to-br from-[#64ffda]/20 to-[#64ffda]/5 rounded-lg border border-[#64ffda]/20 flex items-center justify-center group-hover:border-[#64ffda]/40 transition-colors duration-300">
+
+                <div className="absolute inset-4 bg-gradient-to-br from-[#64ffda]/20 to-[#64ffda]/5 rounded-lg border border-[#64ffda]/20 flex items-center justify-center group-hover:border-[#64ffda]/40 transition-colors duration-300 overflow-hidden">
                   <div className="text-center space-y-2">
                     <motion.div
                       className="w-16 h-16 mx-auto border-2 border-[#64ffda]/50 rounded-full flex items-center justify-center"
@@ -248,12 +252,19 @@ export function AboutSection({
                       }}
                       transition={{
                         duration: 20,
-                        repeat: Infinity,
                         ease: "linear",
                       }}
                     >
                       <div className="w-8 h-8 bg-[#64ffda]/30 rounded-full" />
                     </motion.div>
+                    <Image
+                      alt="profile"
+                      src={ImageProfile}
+                      fill
+                      className="object-cover"
+                      placeholder="blur"
+                    />
+
                     <p className="text-[#64ffda] font-mono text-sm">
                       Your Photo Here
                     </p>
@@ -276,7 +287,6 @@ export function AboutSection({
                 }}
                 transition={{
                   duration: 6,
-                  repeat: Infinity,
                   ease: "easeInOut",
                 }}
               />
@@ -289,7 +299,6 @@ export function AboutSection({
                 }}
                 transition={{
                   duration: 4,
-                  repeat: Infinity,
                   ease: "easeInOut",
                 }}
               />

@@ -140,7 +140,7 @@ export const SCROLL_CONFIG = {
 export const CONTACT_INFO = {
   email: "ali.soveizi@example.com",
   phone: "+98 912 345 6789",
-  location: "Tehran, Iran",
+  location: "Mashhad, Iran",
   social: {
     github: "https://github.com/alisoveizi",
     linkedin: "https://linkedin.com/in/alisoveizi",

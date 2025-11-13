@@ -1,3 +1,4 @@
+"use client";
 // components/WorkSection.tsx
 import {
   AnimatedContainer,
@@ -46,7 +47,7 @@ export function WorkSection({ projects, className }: WorkSectionProps) {
         <motion.div
           className="absolute bottom-1/3 -right-32 w-96 h-96 rounded-full bg-[#64ffda]/4 blur-3xl"
           animate={{ rotate: [0, 360], scale: [1, 1.2, 1] }}
-          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 40, ease: "linear" }}
         />
       </div>
 

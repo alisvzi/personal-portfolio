@@ -1,3 +1,4 @@
+"use client";
 import { motion } from "framer-motion";
 import { Github, Linkedin, Twitter } from "lucide-react";
 
@@ -41,7 +42,6 @@ export function HeroSection({ content, className }: HeroSectionProps) {
           }}
           transition={{
             duration: 20,
-            repeat: Infinity,
             ease: "linear",
           }}
         />
@@ -53,14 +53,13 @@ export function HeroSection({ content, className }: HeroSectionProps) {
           }}
           transition={{
             duration: 25,
-            repeat: Infinity,
             ease: "linear",
           }}
         />
       </div>
       <AnimatedContainer
         variant="stagger"
-        className="max-w-4xl mx-auto space-y-6 relative z-10"
+        className="max-w-4xl mt-10 mx-auto space-y-6 relative z-10"
         viewport={{ once: true, amount: 0.3 }}
         staggerChildren={0.15}
       >
@@ -89,7 +88,7 @@ export function HeroSection({ content, className }: HeroSectionProps) {
           <AnimatedText
             text={content.heroSubtitle}
             as="h2"
-            className="text-4xl md:text-6xl lg:text-7xl font-bold text-[#8892b0] leading-tight"
+            className="text-3xl md:text-6xl lg:text-7xl font-bold text-[#8892b0] leading-tight"
             splitBy="word"
           />
         </AnimatedItem>
@@ -102,8 +101,8 @@ export function HeroSection({ content, className }: HeroSectionProps) {
         </AnimatedItem>
 
         {/* CTA Button */}
-        <AnimatedItem variant="fadeScale">
-          <motion.button
+        <AnimatedItem variant="fadeScale" className="space-x-6">
+          <button
             onClick={handleContactClick}
             className={cn(
               "group inline-flex items-center gap-3 px-8 py-4 mt-8",
@@ -114,17 +113,41 @@ export function HeroSection({ content, className }: HeroSectionProps) {
               "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50",
               "active:scale-95"
             )}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             <span>Get In Touch</span>
-            <motion.div
-              className="group-hover:translate-x-1 transition-transform duration-200"
-              whileHover={{ x: 5 }}
-            >
+            <span className="group-hover:translate-x-1 transition-transform duration-200">
               <ChevronRight className="w-4 h-4" />
-            </motion.div>
-          </motion.button>
+            </span>
+          </button>
+          <a
+            href="/resume.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "group inline-flex items-center gap-3 px-8 py-4 mt-8",
+              "bg-[#64ffda] text-background rounded-lg",
+              "font-mono font-bold text-sm tracking-wide",
+              "transition-all duration-300",
+              "hover:bg-[#64ffda]/70 hover:shadow-lg hover:shadow-[#64ffda]/25",
+              "focus:outline-none focus:ring-2 focus:ring-[#64ffda]/50",
+              "active:scale-95"
+            )}
+          >
+            Download Resume
+            <svg
+              className="ml-2 w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+              />
+            </svg>
+          </a>
         </AnimatedItem>
 
         {/* Scroll Indicator */}
@@ -134,7 +157,6 @@ export function HeroSection({ content, className }: HeroSectionProps) {
             animate={{ y: [0, 10, 0] }}
             transition={{
               duration: 2,
-              repeat: Infinity,
               ease: "easeInOut",
             }}
           >
@@ -145,7 +167,6 @@ export function HeroSection({ content, className }: HeroSectionProps) {
                 animate={{ y: [0, 12, 0] }}
                 transition={{
                   duration: 2,
-                  repeat: Infinity,
                   ease: "easeInOut",
                 }}
               />
@@ -153,80 +174,6 @@ export function HeroSection({ content, className }: HeroSectionProps) {
           </motion.div>
         </AnimatedItem>
       </AnimatedContainer>
-
-      {/* Social Links - Floating */}
-      <motion.div
-        className="absolute left-8 bottom-8 hidden lg:flex flex-col items-center space-y-4"
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-      >
-        <div className="flex flex-col space-y-4">
-          {[
-            {
-              name: "github",
-              icon: Github,
-              link: "https://github.com/yourprofile",
-            },
-            {
-              name: "linkedin",
-              icon: Linkedin,
-              link: "https://linkedin.com/in/yourprofile",
-            },
-            {
-              name: "twitter",
-              icon: Twitter,
-              link: "https://twitter.com/yourprofile",
-            },
-          ].map(({ name, icon: Icon, link }, index) => (
-            <motion.a
-              key={name}
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={name}
-              className="text-[#8892b0] hover:text-[#64ffda] transition-colors"
-              whileHover={{ scale: 1.2, y: -2 }}
-              whileTap={{ scale: 0.9 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.7 + index * 0.1 }}
-            >
-              <Icon className="w-5 h-5" />
-            </motion.a>
-          ))}
-        </div>
-        <motion.div
-          className="w-px h-20 bg-[#8892b0]"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ delay: 2, duration: 0.8 }}
-        />
-      </motion.div>
-
-      {/* Email - Floating */}
-      <motion.div
-        className="absolute right-8 bottom-8 hidden lg:flex flex-col items-center space-y-4"
-        initial={{ opacity: 0, x: 50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-      >
-        <motion.a
-          href={`mailto:${content.contactEmail}`}
-          className="text-[#8892b0] hover:text-[#64ffda] transition-colors font-mono text-sm tracking-widest"
-          style={{ writingMode: "vertical-rl" }}
-          whileHover={{ y: -5 }}
-          transition={{ duration: 0.2 }}
-        >
-          {content.contactEmail}
-        </motion.a>
-        <motion.div
-          className="w-px h-20 bg-[#8892b0]"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: 1 }}
-          transition={{ delay: 2, duration: 0.8 }}
-        />
-      </motion.div>
     </section>
   );
 }
