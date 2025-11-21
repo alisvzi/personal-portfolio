@@ -7,10 +7,10 @@ import { NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const JWT_EXPIRES = 60 * 60 * 24; // 1 day
-const cookieStore = await cookies();
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
     const { email, password } = await request.json();
 
     await connectDB();

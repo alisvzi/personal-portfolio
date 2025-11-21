@@ -1,10 +1,11 @@
 import { connectDB } from "@/lib/db/mongodb";
 import ContentModel from "@/lib/models/Content";
-import { Github, Linkedin, Twitter } from "lucide-react";
+import { Content } from "@/types";
+import { Github, Linkedin } from "lucide-react";
 import type { ReactNode } from "react";
 const SideToolBars = async ({ children }: { children?: ReactNode }) => {
   await connectDB();
-  const contentDoc = await ContentModel.findOne().lean();
+  const contentDoc = await ContentModel.findOne().lean<Content>().exec();
 
   return (
     <div className="relative">
@@ -16,17 +17,12 @@ const SideToolBars = async ({ children }: { children?: ReactNode }) => {
             {
               name: "github",
               icon: Github,
-              link: "https://github.com/yourprofile",
+              link: "https://github.com/alisvzi",
             },
             {
               name: "linkedin",
               icon: Linkedin,
-              link: "https://linkedin.com/in/yourprofile",
-            },
-            {
-              name: "twitter",
-              icon: Twitter,
-              link: "https://twitter.com/yourprofile",
+              link: "https://linkedin.com/in/ali-soveizi",
             },
           ].map(({ name, icon: Icon, link }, index) => (
             <a
@@ -45,13 +41,13 @@ const SideToolBars = async ({ children }: { children?: ReactNode }) => {
       </div>
 
       {/* Email - Floating */}
-      <div className="fixed right-8 bottom-8 hidden lg:flex flex-col items-center space-y-4">
+      <div className="fixed right-8 bottom-8 hidden lg:flex flex-col items-center space-x-4">
         <a
-          href={`mailto:${contentDoc.contactEmail}`}
+          href={`mailto:${contentDoc?.contactEmail}`}
           className="text-[#8892b0] hover:text-[#64ffda] transition-colors font-mono text-sm tracking-widest"
           style={{ writingMode: "vertical-rl" }}
         >
-          {contentDoc.contactEmail}
+          {contentDoc?.contactEmail}
         </a>
         <div className="w-px h-20 bg-[#8892b0]" />
       </div>

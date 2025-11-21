@@ -1,5 +1,5 @@
 export interface Project {
-  id: string;
+  _id: string;
   title: string;
   titleFa?: string;
   description: string;
@@ -14,7 +14,7 @@ export interface Project {
 }
 
 export interface Skill {
-  id: string;
+  _id: string;
   name: string;
   nameFa?: string;
   category?: string;
@@ -34,13 +34,15 @@ export interface Experience {
 }
 
 export interface Content {
+  contactPhone: string;
   heroTitle: string;
   heroSubtitle: string;
   heroDescription: string;
   aboutText: string;
   contactEmail: string;
-  contactPhone: string;
 }
+
+export interface ContentDocument extends Content, Document {}
 
 export interface NavigationSection {
   id: string;
@@ -52,6 +54,13 @@ export interface PortfolioData {
   projects: Project[];
   skills: Skill[];
   experiences: Experience[];
+  content: Content;
+}
+
+export interface PortfolioData2 {
+  projects: { projects: Project[] };
+  skills: { skills: Skill[] };
+  experiences: { experiences: Experience[] };
   content: Content;
 }
 

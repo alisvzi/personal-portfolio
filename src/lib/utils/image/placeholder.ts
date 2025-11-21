@@ -6,19 +6,17 @@ import sharp from "sharp";
  * Create a simple placeholder image (PNG) and save it to public/uploads/projects
  * Returns the absolute file path and the public URL.
  */
-export async function createPlaceholderImage(
-  {
-    width = 120,
-    height = 80,
-    color = { r: 17, g: 34, b: 64, alpha: 1 }, // #112240
-    text = "",
-  }: {
-    width?: number;
-    height?: number;
-    color?: { r: number; g: number; b: number; alpha?: number };
-    text?: string;
-  } = {}
-): Promise<{ filePath: string; publicUrl: string }> {
+export async function createPlaceholderImage({
+  width = 120,
+  height = 80,
+  color = { r: 17, g: 34, b: 64, alpha: 1 }, // #112240
+  text = "",
+}: {
+  width?: number;
+  height?: number;
+  color?: { r: number; g: number; b: number; alpha?: number };
+  text?: string;
+} = {}): Promise<{ filePath: string; publicUrl: string }> {
   const uploadsDir = path.join(process.cwd(), "public", "uploads", "projects");
   await fs.promises.mkdir(uploadsDir, { recursive: true });
 
@@ -26,13 +24,12 @@ export async function createPlaceholderImage(
   const filePath = path.join(uploadsDir, filename);
   const publicUrl = `/uploads/projects/${filename}`;
 
-  // Create a solid color background
-  const background = Buffer.from([
-    color.r,
-    color.g,
-    color.b,
-    Math.round((color.alpha ?? 1) * 255),
-  ]);
+  const background = {
+    r: color.r,
+    g: color.g,
+    b: color.b,
+    alpha: color.alpha ?? 1,
+  };
 
   const image = sharp({
     create: {
@@ -54,7 +51,7 @@ export async function createPlaceholderImage(
   </svg>`;
 
   const composite: sharp.OverlayOptions[] = [
-    { input: Buffer.from(svgPattern), top: 0, left: 0 }
+    { input: Buffer.from(svgPattern), top: 0, left: 0 },
   ];
 
   if (text) {

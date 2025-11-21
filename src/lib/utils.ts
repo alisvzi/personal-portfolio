@@ -1,45 +1,9 @@
-import { PortfolioData, Project } from "@/types";
+import { Project } from "@/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { API_ENDPOINTS, DEFAULT_CONTENT } from "./constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-// ---------- Data Fetching Utils ----------
-export async function fetchPortfolioData(): Promise<PortfolioData> {
-  try {
-    const [projectsRes, skillsRes, contentRes, experiencesRes] =
-      await Promise.all([
-        fetch(API_ENDPOINTS.projects),
-        fetch(API_ENDPOINTS.skills),
-        fetch(API_ENDPOINTS.content),
-        fetch(API_ENDPOINTS.experiences),
-      ]);
-
-    const [projects, skills, content, experiences] = await Promise.all([
-      projectsRes.ok ? projectsRes.json() : [],
-      skillsRes.ok ? skillsRes.json() : [],
-      contentRes.ok ? contentRes.json() : {},
-      experiencesRes.ok ? experiencesRes.json() : [],
-    ]);
-
-    return {
-      projects: projects || [],
-      skills: skills || [],
-      experiences: experiences || [],
-      content: { ...DEFAULT_CONTENT, ...content },
-    };
-  } catch (error) {
-    console.error("Error fetching portfolio data:", error);
-    return {
-      projects: [],
-      skills: [],
-      experiences: [],
-      content: DEFAULT_CONTENT,
-    };
-  }
 }
 
 // ---------- Format Utils ----------

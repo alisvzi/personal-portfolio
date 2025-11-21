@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     domains: ["localhost"],
   },
 
+  reactCompiler: true,
   // Static asset caching
 
   // async headers() {

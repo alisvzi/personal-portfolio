@@ -2,13 +2,14 @@ import { DEFAULT_CONTENT } from "@/lib/constants";
 import { connectDB } from "@/lib/db/mongodb";
 import ContentModel from "@/lib/models/Content";
 import SkillModel from "@/lib/models/Skill";
+import { Content } from "@/types";
 import { AboutSection } from "../AboutSection";
 
 export default async function AboutSectionServer() {
   await connectDB();
 
   const [contentDoc, skills] = await Promise.all([
-    ContentModel.findOne().lean(),
+    ContentModel.findOne().lean<Content>().exec(),
     SkillModel.find({}).sort({ order: 1, name: 1 }).lean(),
   ]);
 

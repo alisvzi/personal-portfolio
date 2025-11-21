@@ -5,13 +5,19 @@ import {
   getGithubUrl,
   getProjectUrl,
 } from "@/lib/utils";
+import { Project } from "@/types";
 import { motion } from "framer-motion";
 import { ExternalLink, Github } from "lucide-react";
 import Image from "next/image";
 import { thumbHashToDataURL } from "thumbhash";
 import { AnimatedItem } from "../ui/AnimatedContainer";
 
-const ProjectCard = ({ project, index }) => {
+interface ProjectCardProps {
+  project: Project;
+  index: number;
+}
+
+const ProjectCard = ({ project, index }: ProjectCardProps) => {
   const placeholderURL = project.imagePlaceholderUrl
     ? thumbHashToDataURL(base64ToUint8Array(project.imagePlaceholderUrl))
     : undefined;

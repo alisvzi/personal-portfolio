@@ -140,14 +140,7 @@ export function ContactSection({ content, className }: ContactSectionProps) {
   ];
 
   return (
-    <section
-      id="contact"
-      className={cn(
-        "min-h-screen py-20 flex items-center",
-        "relative overflow-hidden",
-        className
-      )}
-    >
+    <section id="contact" className={"min-h-screen py-20  overflow-hidden"}>
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div

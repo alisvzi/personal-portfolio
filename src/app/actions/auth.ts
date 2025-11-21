@@ -6,7 +6,7 @@ import User from "@/lib/models/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { redirect } from "next/navigation";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const JWT_EXPIRES = 60 * 60 * 24; // 1 day
@@ -55,13 +55,15 @@ export async function loginAdmin(formData: FormData) {
 }
 
 export async function logoutAdmin() {
-  const response = NextResponse.redirect("/auth/login");
-  response.cookies.set("token", "", {
+  const cookieStore = await cookies();
+
+  cookieStore.set("token", "", {
     path: "/",
     httpOnly: true,
-    maxAge: 0, // immediately expire
+    maxAge: 0,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   });
-  return response;
+
+  redirect("/auth/login");
 }
