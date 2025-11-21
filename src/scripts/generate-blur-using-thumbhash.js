@@ -38,7 +38,7 @@ fs.readdirSync(sourceDir).forEach((file) => {
 
   getThumbhash(inputFilePath)
     .then((base64Hash) => {
-      console.log(`Thumbhash for ${file}:`, base64Hash);
+      // console.log(`Thumbhash for ${file}:`, base64Hash);
     })
     .catch((err) => console.error("Error processing image:", err));
 });

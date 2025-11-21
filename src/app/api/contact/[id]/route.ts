@@ -1,16 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/mongodb";
 import Message from "@/lib/models/Message";
+import { NextRequest, NextResponse } from "next/server";
 
 // PATCH: update a message (e.g., mark as read)
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
-    const id = params.id;
+    const { id } = await context.params;
     const body = await req.json().catch(() => ({}));
 
     if (!id) {
-      return NextResponse.json({ message: "Message ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Message ID is required" },
+        { status: 400 }
+      );
     }
 
     const updated = await Message.findByIdAndUpdate(id, body, {
@@ -19,7 +25,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
 
     if (!updated) {
-      return NextResponse.json({ message: "Message not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Message not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
@@ -32,18 +41,27 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE: remove a message
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
-    const id = params.id;
+    const { id } = await context.params;
 
     if (!id) {
-      return NextResponse.json({ message: "Message ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Message ID is required" },
+        { status: 400 }
+      );
     }
 
     const deleted = await Message.findByIdAndDelete(id);
     if (!deleted) {
-      return NextResponse.json({ message: "Message not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Message not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

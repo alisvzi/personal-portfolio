@@ -26,7 +26,6 @@ type Project = {
 // Create a new project
 export async function createProject(formData: FormData) {
   // Validate required fields
-  console.log(formData);
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const file = formData.get("imageUrl") as File | null;

@@ -54,8 +54,11 @@ export default function ExperiencePanel() {
           technologies: Array.isArray(e.technologies)
             ? e.technologies
             : typeof e.technologies === "string"
-              ? e.technologies.split(",").map((t: string) => t.trim()).filter(Boolean)
-              : [],
+            ? e.technologies
+                .split(",")
+                .map((t: string) => t.trim())
+                .filter(Boolean)
+            : [],
           order: typeof e.order === "number" ? e.order : 0,
         }))
       );
@@ -136,7 +139,6 @@ export default function ExperiencePanel() {
           }}
         />
       )}
-      {console.log(experiences)}
       <div className="grid grid-cols-1 gap-4">
         {experiences.map((experience) => (
           <ExperienceCard

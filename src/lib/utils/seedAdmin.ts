@@ -13,6 +13,6 @@ export async function ensureAdmin() {
   if (!existing) {
     const hashed = await bcrypt.hash(password, 10);
     await User.create({ email, password: hashed, role: "admin" });
-    console.log("Admin account created!");
+    // console.log("Admin account created!");
   }
 }

@@ -1,8 +1,8 @@
 import { connectDB } from "@/lib/db/mongodb";
 import ContentModel from "@/lib/models/Content";
 import { Github, Linkedin, Twitter } from "lucide-react";
-
-const SideToolBars = async ({ children }) => {
+import type { ReactNode } from "react";
+const SideToolBars = async ({ children }: { children?: ReactNode }) => {
   await connectDB();
   const contentDoc = await ContentModel.findOne().lean();
 

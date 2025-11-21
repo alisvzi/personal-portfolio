@@ -6,14 +6,15 @@ import User from "@/lib/models/User";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 const JWT_EXPIRES = 60 * 60 * 24; // 1 day
 
 export async function loginAdmin(formData: FormData) {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const cookieStore = await cookies();
 
   if (!email || !password) {
     return { success: false, error: "Email and password are required" };
@@ -38,12 +39,12 @@ export async function loginAdmin(formData: FormData) {
       { expiresIn: JWT_EXPIRES }
     );
 
-    cookies().set("token", token, {
+    cookieStore.set("token", token, {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
       maxAge: JWT_EXPIRES,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === "production",
     });
 
     return { success: true };
@@ -54,13 +55,13 @@ export async function loginAdmin(formData: FormData) {
 }
 
 export async function logoutAdmin() {
-  cookies().set("token", "", {
+  const response = NextResponse.redirect("/auth/login");
+  response.cookies.set("token", "", {
     path: "/",
     httpOnly: true,
-    expires: new Date(0),
-    secure: process.env.NODE_ENV === 'production',
+    maxAge: 0, // immediately expire
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
   });
-  
-  return redirect("/auth/login");
+  return response;
 }
