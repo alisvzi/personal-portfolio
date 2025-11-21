@@ -66,6 +66,7 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 target="_blank"
+                aria-label="Github"
                 rel="noopener noreferrer"
               >
                 <Github className="w-5 h-5" />
@@ -76,6 +77,7 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 target="_blank"
+                aria-label="ProjectUrl"
                 rel="noopener noreferrer"
               >
                 <ExternalLink className="w-5 h-5" />
@@ -184,12 +186,14 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
               whileHover={{ scale: 1.2, y: -2 }}
               whileTap={{ scale: 0.9 }}
               target="_blank"
+              aria-label="Github"
               rel="noopener noreferrer"
             >
               <Github className="w-6 h-6" />
             </motion.a>
             <motion.a
               href={getProjectUrl(project)}
+              aria-label="ProjectUrl"
               className="text-[#ccd6f6] hover:text-[#64ffda] transition-colors p-2 rounded-full hover:bg-[#64ffda]/5"
               whileHover={{ scale: 1.2, y: -2 }}
               whileTap={{ scale: 0.9 }}
