@@ -79,10 +79,10 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION || "",
-    yandex: process.env.YANDEX_VERIFICATION || "",
-  },
+  // verification: {
+  //   google: process.env.GOOGLE_SITE_VERIFICATION || "",
+  //   yandex: process.env.YANDEX_VERIFICATION || "",
+  // },
 };
 
 export default function RootLayout({

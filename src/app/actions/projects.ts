@@ -40,6 +40,7 @@ export async function createProject(formData: FormData) {
     };
   }
 
+  const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
   let imageUrl: string = "";
   let thumbhash: string | null = null;
 
@@ -48,21 +49,32 @@ export async function createProject(formData: FormData) {
     const tmpDir = os.tmpdir();
     const ext = path.extname(file.name) || ".jpg";
     const tmpFile = path.join(tmpDir, `upload_${Date.now()}${ext}`);
-    await fs.promises.writeFile(tmpFile, buffer);
     try {
+      await fs.promises.writeFile(tmpFile, buffer);
       thumbhash = await generateThumbHash(tmpFile);
     } catch {}
     await fs.promises.unlink(tmpFile).catch(() => {});
 
-    try {
-      const blob = await put(file.name, buffer, {
-        access: "public",
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      } as any);
-      imageUrl = (blob as any).url || "";
-    } catch {
-      const saved = await saveImageFile(file, "projects");
-      imageUrl = saved.publicUrl;
+    if (isProd) {
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        return { success: false, error: "Storage is not configured (BLOB_READ_WRITE_TOKEN missing)" };
+      }
+      try {
+        const blob = await put(file.name, buffer, {
+          access: "public",
+          token: process.env.BLOB_READ_WRITE_TOKEN,
+        } as any);
+        imageUrl = (blob as any).url || "";
+      } catch (e: any) {
+        return { success: false, error: "Image upload failed" };
+      }
+    } else {
+      try {
+        const saved = await saveImageFile(file, "projects");
+        imageUrl = saved.publicUrl;
+      } catch (e) {
+        return { success: false, error: "Local image save failed" };
+      }
     }
   } else {
     const ph = await createPlaceholderImage({ text: title || "Project" });
@@ -104,22 +116,22 @@ export async function updateProject(formData: FormData) {
   if (!id) {
     return { success: false, error: "Project ID is required" };
   }
-
+  
   // Validate required fields
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const file = formData.get("imageUrl") as File | null;
-
+  
   if (!title || !description) {
     return {
       success: false,
       error: "Title and description are required",
     };
   }
-
+  
   try {
     await connectDB();
-
+  
     let imageUrl: string | undefined;
     let thumbhash: string | undefined;
     if (file && (file as any).size) {
@@ -127,22 +139,34 @@ export async function updateProject(formData: FormData) {
       const tmpDir = os.tmpdir();
       const ext = path.extname(file.name) || ".jpg";
       const tmpFile = path.join(tmpDir, `upload_${Date.now()}${ext}`);
-      await fs.promises.writeFile(tmpFile, buffer);
       try {
+        await fs.promises.writeFile(tmpFile, buffer);
         const th = await generateThumbHash(tmpFile);
         thumbhash = th || undefined;
       } catch {}
       await fs.promises.unlink(tmpFile).catch(() => {});
 
-      try {
-        const blob = await put(file.name, buffer, {
-          access: "public",
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-        } as any);
-        imageUrl = (blob as any).url || undefined;
-      } catch {
-        const saved = await saveImageFile(file, "projects");
-        imageUrl = saved.publicUrl;
+      const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
+      if (isProd) {
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          return { success: false, error: "Storage is not configured (BLOB_READ_WRITE_TOKEN missing)" };
+        }
+        try {
+          const blob = await put(file.name, buffer, {
+            access: "public",
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+          } as any);
+          imageUrl = (blob as any).url || undefined;
+        } catch {
+          return { success: false, error: "Image upload failed" };
+        }
+      } else {
+        try {
+          const saved = await saveImageFile(file, "projects");
+          imageUrl = saved.publicUrl;
+        } catch {
+          return { success: false, error: "Local image save failed" };
+        }
       }
     }
 

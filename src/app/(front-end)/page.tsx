@@ -2,11 +2,11 @@ import { Suspense } from "react";
 
 import { Metadata } from "next";
 
-import HeroSectionServer from "@/components/sections/server/HeroSectionServer";
 import AboutSectionServer from "@/components/sections/server/AboutSectionServer";
-import ExperienceSectionServer from "@/components/sections/server/ExperienceSectionServer";
-import WorkSectionServer from "@/components/sections/server/WorkSectionServer";
 import ContactSectionServer from "@/components/sections/server/ContactSectionServer";
+import ExperienceSectionServer from "@/components/sections/server/ExperienceSectionServer";
+import HeroSectionServer from "@/components/sections/server/HeroSectionServer";
+import WorkSectionServer from "@/components/sections/server/WorkSectionServer";
 import { FullScreenLoading } from "@/components/ui/LoadingSpinner";
 import { PERSON_SCHEMA, SEO_CONFIG } from "@/lib/constants";
 import { ensureAdmin } from "@/lib/utils/seedAdmin";
@@ -49,9 +49,9 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION || "",
-  },
+  // verification: {
+  //   google: process.env.GOOGLE_SITE_VERIFICATION || "",
+  // },
 };
 
 export default async function HomePage() {
