@@ -72,6 +72,7 @@ export async function createProject(formData: FormData) {
     await ProjectModel.create(project);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error creating project:", error);
@@ -117,6 +118,7 @@ export async function updateProject(formData: FormData) {
     await ProjectModel.findByIdAndUpdate(id, projectData, { new: true });
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error updating project:", error);
@@ -137,6 +139,7 @@ export async function deleteProject(formData: FormData) {
     await ProjectModel.findByIdAndDelete(id);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting project:", error);

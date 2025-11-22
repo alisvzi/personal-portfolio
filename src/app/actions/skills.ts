@@ -40,6 +40,7 @@ export async function createSkill(formData: FormData) {
     await SkillModel.create(skillData);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error creating skill:", error);
@@ -77,6 +78,7 @@ export async function updateSkill(formData: FormData) {
     await SkillModel.findByIdAndUpdate(id, skillData, { new: true });
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error updating skill:", error);
@@ -96,6 +98,7 @@ export async function deleteSkill(formData: FormData) {
     await SkillModel.findByIdAndDelete(id);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting skill:", error);

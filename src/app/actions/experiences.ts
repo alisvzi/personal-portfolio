@@ -51,6 +51,7 @@ export async function createExperience(formData: FormData) {
     await ExperienceModel.create(experienceData);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Create experience error:", error);
@@ -105,6 +106,7 @@ export async function updateExperience(formData: FormData) {
     await ExperienceModel.findByIdAndUpdate(id, experienceData, { new: true });
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Update experience error:", error);
@@ -131,6 +133,7 @@ export async function deleteExperience(formData: FormData) {
     await ExperienceModel.findByIdAndDelete(id);
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Delete experience error:", error);

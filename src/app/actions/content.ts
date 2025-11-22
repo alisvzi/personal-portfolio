@@ -71,6 +71,7 @@ export async function updateContent(formData: FormData) {
     }
 
     revalidatePath("/admin");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error updating content:", error);
