@@ -57,6 +57,7 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
                 className="w-full h-full object-cover rounded-lg"
                 placeholder={placeholderURL ? "blur" : "empty"}
                 blurDataURL={placeholderURL || undefined}
+                unoptimized
               />
             </div>
             <motion.div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">

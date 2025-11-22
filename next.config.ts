@@ -4,7 +4,16 @@ const nextConfig: NextConfig = {
   /* config options here */
 
   images: {
-    domains: ["localhost"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "blob.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*",
+      },
+    ],
   },
 
   reactCompiler: true,
