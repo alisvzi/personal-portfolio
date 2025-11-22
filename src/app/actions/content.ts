@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { Content } from "@/types";
+import { connectDB } from "@/lib/db/mongodb";
+import ContentModel from "@/lib/models/Content";
 
 type ContentItem = {
   key: string;
@@ -19,14 +21,7 @@ export async function updateContent(formData: FormData) {
   }
 
   try {
-    // Fetch existing content to satisfy required schema fields
-    let current: Partial<Content> | null = null;
-    try {
-      const getResp = await fetch(`/api/content`, { cache: "no-store" });
-      if (getResp.ok) {
-        current = await getResp.json();
-      }
-    } catch {}
+    await connectDB();
 
     const defaultContent: Content = {
       heroTitle: "",
@@ -37,24 +32,13 @@ export async function updateContent(formData: FormData) {
       contactPhone: "",
     };
 
-    const payload: Content = {
-      ...(current ?? defaultContent),
-      [key]: value,
-    } as Content;
-
-    const response = await fetch(`/api/content`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return {
-        success: false,
-        error: errorData?.message || "Failed to update content",
-      };
+    let doc = await ContentModel.findOne();
+    if (!doc) {
+      doc = await ContentModel.create(defaultContent as any);
     }
+
+    (doc as any)[key] = value;
+    await doc.save();
 
     revalidatePath("/admin");
     revalidatePath("/");
