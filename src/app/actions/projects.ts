@@ -5,11 +5,11 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongodb";
 import ProjectModel from "@/lib/models/Project";
 import { generateThumbHash } from "@/lib/utils/image/thumbhash";
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { saveImageFile } from "@/lib/utils/image/upload";
+import { saveImageFile, deleteImageFile } from "@/lib/utils/image/upload";
 import { createPlaceholderImage } from "@/lib/utils/image/placeholder";
 
 // Project type definition
@@ -205,6 +205,33 @@ export async function deleteProject(formData: FormData) {
 
   try {
     await connectDB();
+    const existing = await ProjectModel.findById(id);
+    if (!existing) {
+      return { success: false, error: "Project not found" };
+    }
+
+    const imageUrl = existing.imageUrl as string;
+    const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
+    if (imageUrl) {
+      // Delete from Blob in production
+      if (isProd && imageUrl.includes("blob.vercel-storage.com")) {
+        if (!process.env.BLOB_READ_WRITE_TOKEN) {
+          // Continue deletion of DB even if storage token missing
+        } else {
+          try {
+            await del(imageUrl, { token: process.env.BLOB_READ_WRITE_TOKEN } as any);
+          } catch (e) {
+            // swallow, proceed with DB deletion
+          }
+        }
+      } else {
+        // Delete local file if exists
+        try {
+          await deleteImageFile(imageUrl);
+        } catch {}
+      }
+    }
+
     await ProjectModel.findByIdAndDelete(id);
 
     revalidatePath("/admin");

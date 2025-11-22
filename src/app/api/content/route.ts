@@ -6,13 +6,18 @@ export async function GET() {
   try {
     await connectDB();
 
-    const content = await ContentModel.findOne();
+    let content = await ContentModel.findOne();
 
     if (!content) {
-      return NextResponse.json(
-        { message: "No content found" },
-        { status: 404 }
-      );
+      content = await ContentModel.create({
+        heroTitle: "Hi, my name is Ali",
+        heroSubtitle: "Frontend Developer",
+        heroDescription:
+          "Building clean, responsive web experiences with React and Next.js.",
+        aboutText: "About me text",
+        contactEmail: "ali.soveizi@example.com",
+        contactPhone: "+98 912 345 6789",
+      });
     }
 
     return NextResponse.json(content, { status: 200 });
