@@ -3,23 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { Content } from "@/types";
 
-// Content type definition
 type ContentItem = {
   key: string;
   value: string;
   type: string;
 };
-
-// Update content
-function resolveApiBase() {
-  const raw =
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.VERCEL_URL ||
-    "";
-  if (!raw) return "http://localhost:3000";
-  return raw.startsWith("http") ? raw : `https://${raw}`;
-}
 
 export async function updateContent(formData: FormData) {
   // Validate required fields
@@ -31,12 +19,10 @@ export async function updateContent(formData: FormData) {
   }
 
   try {
-    const API_BASE = resolveApiBase();
-
     // Fetch existing content to satisfy required schema fields
     let current: Partial<Content> | null = null;
     try {
-      const getResp = await fetch(`${API_BASE}/api/content`, { cache: "no-store" });
+      const getResp = await fetch(`/api/content`, { cache: "no-store" });
       if (getResp.ok) {
         current = await getResp.json();
       }
@@ -56,7 +42,7 @@ export async function updateContent(formData: FormData) {
       [key]: value,
     } as Content;
 
-    const response = await fetch(`${API_BASE}/api/content`, {
+    const response = await fetch(`/api/content`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -82,8 +68,7 @@ export async function updateContent(formData: FormData) {
 // Get all content
 export async function getContent() {
   try {
-    const API_BASE = resolveApiBase();
-    const response = await fetch(`${API_BASE}/api/content`, {
+    const response = await fetch(`/api/content`, {
       cache: "no-store",
     });
 
