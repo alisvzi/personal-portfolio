@@ -211,6 +211,7 @@ interface ProjectFormProps {
 function ProjectForm({ project, onCancel, onSuccess }: ProjectFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [featured, setFeatured] = useState(project.featured);
 
   const handleSubmit = async (formData: FormData) => {
     setError("");
@@ -299,8 +300,8 @@ function ProjectForm({ project, onCancel, onSuccess }: ProjectFormProps) {
               type="file"
               id="imageUrl"
               name="imageUrl"
-              defaultValue={project.imageUrl}
-              required
+              accept="image/*"
+              required={!project.id}
             />
           </div>
 
@@ -338,15 +339,11 @@ function ProjectForm({ project, onCancel, onSuccess }: ProjectFormProps) {
             <div className="flex items-center space-x-2">
               <Switch
                 id="featured"
-                name="featured"
-                defaultChecked={project.featured}
+                checked={featured}
+                onCheckedChange={setFeatured}
               />
               <Label htmlFor="featured">Featured Project</Label>
-              <input
-                type="hidden"
-                name="featured"
-                value={project.featured ? "true" : "false"}
-              />
+              <input type="hidden" name="featured" value={featured ? "on" : ""} />
             </div>
 
             <div className="space-y-2">
