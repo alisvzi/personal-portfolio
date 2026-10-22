@@ -45,6 +45,53 @@ function toPlain(doc: unknown): Record<string, unknown> {
   return { ...rest, id: String(_id) };
 }
 
+/**
+ * Raised when a page has no honest fallback because the read itself failed.
+ *
+ * The project detail route is the only caller: a missing project and an
+ * unreachable database look identical to `getProjectBySlug`, and answering
+ * "404" for the second one would tell crawlers the page had been deleted.
+ * Throwing lets the route error boundary offer a retry instead.
+ */
+export class DataUnavailableError extends Error {
+  constructor(scope: string) {
+    super(`Could not read "${scope}" from the database.`);
+    this.name = "DataUnavailableError";
+  }
+}
+
+/**
+ * Runs a public read, falling back to a default when the database is
+ * unreachable.
+ *
+ * Every page is server-rendered and reads MongoDB on each request. Without
+ * this guard a single unreachable cluster — a missing `MONGODB_URI`, an Atlas
+ * IP allow-list that does not cover Vercel's egress, a cold-start timeout —
+ * throws inside the Server Component render. React reports that only as
+ * "An error occurred in the Server Components render" (production error #441),
+ * so the visitor sees a blank error page and the real cause never leaves the
+ * function log.
+ *
+ * Degrading to defaults keeps the portfolio online through exactly the kind of
+ * transient failure a serverless deployment sees most often. The real error is
+ * logged with its scope so it stays diagnosable.
+ *
+ * Admin reads deliberately do *not* use this: an empty dashboard is
+ * indistinguishable from lost data, so the owner should see the failure.
+ */
+async function safeRead<T>(
+  scope: string,
+  fallback: T,
+  run: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    console.error(`[data] "${scope}" read failed; serving fallback.`, error);
+    return fallback;
+  }
+}
+
 /** Sensible defaults so the site renders before the admin has saved anything. */
 export const DEFAULT_CONTENT: Content = {
   heroTitle: PERSON.nameEn,
@@ -81,30 +128,32 @@ function optionalText(value: string | undefined | null): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-export const getContent = cache(async (): Promise<Content> => {
-  await connectDB();
-  const doc = await ContentModel.findOne()
-    .select(CONTENT_FIELDS)
-    .lean<Content>()
-    .exec();
+export const getContent = cache(async (): Promise<Content> =>
+  safeRead("content", DEFAULT_CONTENT, async () => {
+    await connectDB();
+    const doc = await ContentModel.findOne()
+      .select(CONTENT_FIELDS)
+      .lean<Content>()
+      .exec();
 
-  if (!doc) return DEFAULT_CONTENT;
+    if (!doc) return DEFAULT_CONTENT;
 
-  return {
-    heroTitle: doc.heroTitle || DEFAULT_CONTENT.heroTitle,
-    heroSubtitle: doc.heroSubtitle || DEFAULT_CONTENT.heroSubtitle,
-    heroDescription: doc.heroDescription || DEFAULT_CONTENT.heroDescription,
-    aboutText: doc.aboutText || DEFAULT_CONTENT.aboutText,
-    contactEmail: doc.contactEmail || DEFAULT_CONTENT.contactEmail,
-    contactPhone: doc.contactPhone || DEFAULT_CONTENT.contactPhone,
-    heroTitleFa: optionalText(doc.heroTitleFa) ?? DEFAULT_CONTENT.heroTitleFa,
-    heroSubtitleFa:
-      optionalText(doc.heroSubtitleFa) ?? DEFAULT_CONTENT.heroSubtitleFa,
-    heroDescriptionFa:
-      optionalText(doc.heroDescriptionFa) ?? DEFAULT_CONTENT.heroDescriptionFa,
-    aboutTextFa: optionalText(doc.aboutTextFa) ?? DEFAULT_CONTENT.aboutTextFa,
-  };
-});
+    return {
+      heroTitle: doc.heroTitle || DEFAULT_CONTENT.heroTitle,
+      heroSubtitle: doc.heroSubtitle || DEFAULT_CONTENT.heroSubtitle,
+      heroDescription: doc.heroDescription || DEFAULT_CONTENT.heroDescription,
+      aboutText: doc.aboutText || DEFAULT_CONTENT.aboutText,
+      contactEmail: doc.contactEmail || DEFAULT_CONTENT.contactEmail,
+      contactPhone: doc.contactPhone || DEFAULT_CONTENT.contactPhone,
+      heroTitleFa: optionalText(doc.heroTitleFa) ?? DEFAULT_CONTENT.heroTitleFa,
+      heroSubtitleFa:
+        optionalText(doc.heroSubtitleFa) ?? DEFAULT_CONTENT.heroSubtitleFa,
+      heroDescriptionFa:
+        optionalText(doc.heroDescriptionFa) ?? DEFAULT_CONTENT.heroDescriptionFa,
+      aboutTextFa: optionalText(doc.aboutTextFa) ?? DEFAULT_CONTENT.aboutTextFa,
+    };
+  }),
+);
 
 /** Date → ISO string, so the serialised shape stays plain JSON. */
 function toIso(value: unknown): string | undefined {
@@ -142,36 +191,57 @@ function readGallery(value: unknown): ProjectImage[] {
  * page at all. Deriving one here (and de-duplicating with a numeric suffix)
  * means every project is addressable immediately, with no migration step.
  */
-export const getProjects = cache(async (): Promise<Project[]> => {
-  await connectDB();
-  const docs = await ProjectModel.find({})
-    .sort({ featured: -1, order: 1, _id: -1 })
-    .lean()
-    .exec();
+/**
+ * Projects, plus whether the read actually succeeded.
+ *
+ * The grid has a usable fallback (an empty state); the detail route does not.
+ * Keeping the flag lets each consumer tell "the owner has no projects yet"
+ * apart from "the database is unreachable", which need different answers.
+ */
+const readProjects = cache(
+  async (): Promise<{ projects: Project[]; ok: boolean }> => {
+    try {
+      await connectDB();
+      const docs = await ProjectModel.find({})
+        .sort({ featured: -1, order: 1, _id: -1 })
+        .lean()
+        .exec();
 
-  const taken = new Set<string>();
+      const taken = new Set<string>();
 
-  return docs.map((doc) => {
-    const project = toPlain(doc);
-    const stored = typeof project.slug === "string" ? project.slug.trim() : "";
-    const base =
-      (stored && slugify(stored)) ||
-      slugify(String(project.title ?? "")) ||
-      `project-${project.id}`;
-    const slug = uniqueSlug(base, taken);
-    taken.add(slug);
+      const projects = docs.map((doc) => {
+        const project = toPlain(doc);
+        const stored =
+          typeof project.slug === "string" ? project.slug.trim() : "";
+        const base =
+          (stored && slugify(stored)) ||
+          slugify(String(project.title ?? "")) ||
+          `project-${project.id}`;
+        const slug = uniqueSlug(base, taken);
+        taken.add(slug);
 
-    return {
-      ...project,
-      slug,
-      gallery: readGallery(project.gallery),
-      featured: Boolean(project.featured),
-      order: typeof project.order === "number" ? project.order : 0,
-      createdAt: toIso(project.createdAt),
-      updatedAt: toIso(project.updatedAt),
-    } as unknown as Project;
-  });
-});
+        return {
+          ...project,
+          slug,
+          gallery: readGallery(project.gallery),
+          featured: Boolean(project.featured),
+          order: typeof project.order === "number" ? project.order : 0,
+          createdAt: toIso(project.createdAt),
+          updatedAt: toIso(project.updatedAt),
+        } as unknown as Project;
+      });
+
+      return { projects, ok: true };
+    } catch (error) {
+      console.error('[data] "projects" read failed.', error);
+      return { projects: [], ok: false };
+    }
+  },
+);
+
+export const getProjects = cache(
+  async (): Promise<Project[]> => (await readProjects()).projects,
+);
 
 /**
  * One project by its URL slug.
@@ -180,42 +250,58 @@ export const getProjects = cache(async (): Promise<Project[]> => {
  * the list is already in memory for this render pass, and a string comparison
  * cannot be turned into a query operator — which keeps an attacker-supplied
  * slug from ever reaching MongoDB as anything but a plain string.
+ *
+ * A failed read throws rather than returning `undefined`: `undefined` means
+ * "this project does not exist", and the route turns that into a 404. If the
+ * database is down, answering 404 would quietly tell search engines that every
+ * case study had been removed.
  */
 export async function getProjectBySlug(
   slug: string,
 ): Promise<Project | undefined> {
-  const projects = await getProjects();
+  const { projects, ok } = await readProjects();
+  if (!ok) throw new DataUnavailableError("projects");
   return projects.find((project) => project.slug === slug);
 }
 
-export const getSkills = cache(async (): Promise<Skill[]> => {
-  await connectDB();
-  const docs = await SkillModel.find({}).sort({ order: 1, name: 1 }).lean().exec();
+export const getSkills = cache(async (): Promise<Skill[]> =>
+  safeRead("skills", [], async () => {
+    await connectDB();
+    const docs = await SkillModel.find({})
+      .sort({ order: 1, name: 1 })
+      .lean()
+      .exec();
 
-  return docs.map((doc) => {
-    const skill = toPlain(doc);
-    return {
-      ...skill,
-      order: typeof skill.order === "number" ? skill.order : 0,
-    } as unknown as Skill;
-  });
-});
+    return docs.map((doc) => {
+      const skill = toPlain(doc);
+      return {
+        ...skill,
+        order: typeof skill.order === "number" ? skill.order : 0,
+      } as unknown as Skill;
+    });
+  }),
+);
 
-export const getExperiences = cache(async (): Promise<Experience[]> => {
-  await connectDB();
-  const docs = await ExperienceModel.find({}).sort({ order: 1, _id: -1 }).lean().exec();
+export const getExperiences = cache(async (): Promise<Experience[]> =>
+  safeRead("experiences", [], async () => {
+    await connectDB();
+    const docs = await ExperienceModel.find({})
+      .sort({ order: 1, _id: -1 })
+      .lean()
+      .exec();
 
-  return docs.map((doc) => {
-    const experience = toPlain(doc);
-    return {
-      ...experience,
-      technologies: Array.isArray(experience.technologies)
-        ? (experience.technologies as string[])
-        : [],
-      order: typeof experience.order === "number" ? experience.order : 0,
-    } as unknown as Experience;
-  });
-});
+    return docs.map((doc) => {
+      const experience = toPlain(doc);
+      return {
+        ...experience,
+        technologies: Array.isArray(experience.technologies)
+          ? (experience.technologies as string[])
+          : [],
+        order: typeof experience.order === "number" ? experience.order : 0,
+      } as unknown as Experience;
+    });
+  }),
+);
 
 /**
  * Everything the landing page needs, in one parallel round trip.

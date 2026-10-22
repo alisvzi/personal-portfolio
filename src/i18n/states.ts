@@ -15,6 +15,7 @@ export interface StateStrings {
   loadingPortfolio: string;
   errorTitle: string;
   errorBody: string;
+  errorRef: string;
   retry: string;
   notFoundTitle: string;
   notFoundBody: string;
@@ -28,6 +29,7 @@ const statesByLocale: Record<Locale, StateStrings> = {
     errorTitle: "Something went wrong",
     errorBody:
       "This page could not be loaded. Please try again — if the problem continues, come back a little later.",
+    errorRef: "Reference",
     retry: "Try again",
     notFoundTitle: "Page not found",
     notFoundBody: "The page you are looking for does not exist or has moved.",
@@ -39,6 +41,7 @@ const statesByLocale: Record<Locale, StateStrings> = {
     errorTitle: "مشکلی پیش آمد",
     errorBody:
       "بارگذاری این صفحه ممکن نشد. لطفاً دوباره تلاش کنید؛ اگر مشکل ادامه داشت، کمی بعد سر بزنید.",
+    errorRef: "کد خطا",
     retry: "تلاش دوباره",
     notFoundTitle: "صفحه پیدا نشد",
     notFoundBody: "صفحهای که دنبالش هستید وجود ندارد یا جابهجا شده است.",

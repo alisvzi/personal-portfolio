@@ -46,12 +46,38 @@ export async function connectDB(): Promise<Connection> {
   try {
     cached.conn = await cached.promise;
   } catch (error) {
+    // Clear the cache so the next request retries instead of replaying a
+    // rejected promise for the lifetime of the instance.
     cached.promise = null;
-    console.error("[db] MongoDB connection failed:", error);
+
+    /*
+     * Logged with an explicit hint because this is the single most common
+     * cause of a blank site after a deploy, and the browser only ever reports
+     * it as React error #441 ("An error occurred in the Server Components
+     * render") — the message is stripped from production builds.
+     */
+    console.error(
+      "[db] MongoDB connection failed. Check that MONGODB_URI is set for this " +
+        "environment and that the cluster's IP allow-list accepts Vercel's " +
+        "egress (0.0.0.0/0 for a hobby deployment).",
+      error,
+    );
     throw error;
   }
 
   return cached.conn;
+}
+
+/**
+ * Whether a connection string is present at all.
+ *
+ * Lets a health check separate "misconfigured deployment" from "cluster
+ * unreachable", which are fixed in different places (Vercel env vars vs the
+ * Atlas allow-list).
+ */
+export function isMongoConfigured(): boolean {
+  const uri = process.env.MONGODB_URI?.trim();
+  return Boolean(uri);
 }
 
 /**
