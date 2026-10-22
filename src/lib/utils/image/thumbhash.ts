@@ -2,36 +2,33 @@ import sharp from "sharp";
 import { rgbaToThumbHash } from "thumbhash";
 
 /**
- * Generates a ThumbHash placeholder (as Base64 DataURL) for an image file.
+ * Generates a ThumbHash placeholder (base64) directly from an already-decoded
+ * image buffer.
  *
- * @param filePath - Full local path to the image file
- * @param options - Optional configuration (resize dimensions)
- * @returns Base64 data URL string (for use as blur placeholder)
+ * Working from a buffer rather than a path avoids the temporary-file dance the
+ * upload flow previously needed (`os.tmpdir()` writes are not available on
+ * every serverless runtime, and the files were never reliably cleaned up).
  */
-
-export async function generateThumbHash(
-  filePath: string,
-  options: { width?: number; height?: number } = {}
+export async function generateThumbHashFromBuffer(
+  input: Buffer,
+  options: { width?: number; height?: number } = {},
 ): Promise<string | null> {
-  const width = options.width ?? 50;
-  const height = options.height ?? 50;
+  try {
+    const { data, info } = await sharp(input)
+      .raw()
+      .ensureAlpha()
+      .resize(options.width ?? 50, options.height ?? 50, { fit: "inside" })
+      .toBuffer({ resolveWithObject: true });
 
-  const { data, info } = await sharp(filePath)
-    .raw()
-    .ensureAlpha() // Ensure the image has an alpha channel
-    .resize(width, height, {
-      // Resize to a manageable size for Thumbhash
-      fit: "inside",
-    })
-    .toBuffer({ resolveWithObject: true });
+    const thumbhash = rgbaToThumbHash(
+      info.width,
+      info.height,
+      new Uint8ClampedArray(data),
+    );
 
-  // Encode the image data using Thumbhash
-  const thumbhash = rgbaToThumbHash(
-    info.width,
-    info.height,
-    new Uint8ClampedArray(data) // Image data as Uint8ClampedArray
-  );
-
-  // Convert the Thumbhash to a Base64 string
-  return Buffer.from(thumbhash).toString("base64");
+    return Buffer.from(thumbhash).toString("base64");
+  } catch (error) {
+    console.warn("[thumbhash] Could not generate placeholder:", error);
+    return null;
+  }
 }

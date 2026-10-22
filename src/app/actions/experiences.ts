@@ -1,157 +1,121 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
+import { actionError, actionOk, type ActionErrorKey, type ActionResult } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
 import { connectDB } from "@/lib/db/mongodb";
 import ExperienceModel from "@/lib/models/Experience";
+import { LIMITS, formNumber, formString, parseTechnologies } from "@/lib/validation";
 
-// Experience type definition
-type Experience = {
-  id?: string;
+/** Experience mutations. Every entry point is gated behind an admin session. */
+
+interface ExperienceInput {
   title: string;
   company: string;
   period: string;
   description: string;
   technologies: string[];
   order: number;
-};
+}
 
-// Create a new experience
-export async function createExperience(formData: FormData) {
-  try {
-    const title = formData.get("title") as string;
-    const company = formData.get("company") as string;
-    const period = formData.get("period") as string;
-    const description = formData.get("description") as string;
-    const technologiesString = formData.get("technologies") as string;
-    const orderValue = formData.get("order");
+function parse(
+  form: FormData,
+): { data: ExperienceInput } | { error: ActionErrorKey } {
+  const title = formString(form, "title");
+  const company = formString(form, "company");
+  const period = formString(form, "period");
+  const description = formString(form, "description");
+  const technologiesRaw = formString(form, "technologies");
 
-    // Validation
-    if (!title || !company || !period || !description || !technologiesString) {
-      return {
-        success: false,
-        error: "All fields are required",
-      };
-    }
+  if (!title || !company || !period || !description || !technologiesRaw) {
+    return { error: "experienceFieldsRequired" };
+  }
+  if (title.length > LIMITS.title || company.length > LIMITS.company) {
+    return { error: "roleCompanyTooLong" };
+  }
+  if (period.length > LIMITS.period) {
+    return { error: "periodTooLong" };
+  }
+  if (description.length > LIMITS.description) {
+    return { error: "descriptionTooLong" };
+  }
 
-    const technologies = technologiesString
-      .split(",")
-      .map((tech) => tech.trim());
-    const order = orderValue ? parseInt(orderValue as string, 10) : 0;
+  const technologies = parseTechnologies(technologiesRaw);
+  if (technologies.length === 0) {
+    return { error: "technologiesRequired" };
+  }
 
-    const experienceData: Omit<Experience, "id"> = {
+  return {
+    data: {
       title,
       company,
       period,
       description,
       technologies,
-      order,
-    };
+      order: formNumber(form, "order", 0),
+    },
+  };
+}
+
+export async function createExperience(form: FormData): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    const parsed = parse(form);
+    if ("error" in parsed) return { success: false, error: parsed.error };
 
     await connectDB();
-    await ExperienceModel.create(experienceData);
+    await ExperienceModel.create(parsed.data);
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
+    revalidatePath("/", "layout");
+    return actionOk();
   } catch (error) {
-    console.error("Create experience error:", error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
+    console.error("[actions] createExperience failed:", error);
+    return actionError(error, "saveFailed");
   }
 }
 
-// Update an existing experience
-export async function updateExperience(formData: FormData) {
+export async function updateExperience(form: FormData): Promise<ActionResult> {
   try {
-    const id = formData.get("id") as string;
-    const title = formData.get("title") as string;
-    const company = formData.get("company") as string;
-    const period = formData.get("period") as string;
-    const description = formData.get("description") as string;
-    const technologiesString = formData.get("technologies") as string;
-    const orderValue = formData.get("order");
+    await requireAdmin();
 
-    // Validation
-    if (
-      !id ||
-      !title ||
-      !company ||
-      !period ||
-      !description ||
-      !technologiesString
-    ) {
-      return {
-        success: false,
-        error: "All fields are required",
-      };
-    }
+    const id = formString(form, "id");
+    if (!id) return { success: false, error: "idRequired" };
 
-    const technologies = technologiesString
-      .split(",")
-      .map((tech) => tech.trim());
-    const order = orderValue ? parseInt(orderValue as string, 10) : 0;
-
-    const experienceData = {
-      title,
-      company,
-      period,
-      description,
-      technologies,
-      order,
-    };
+    const parsed = parse(form);
+    if ("error" in parsed) return { success: false, error: parsed.error };
 
     await connectDB();
-    await ExperienceModel.findByIdAndUpdate(id, experienceData, { new: true });
+    const updated = await ExperienceModel.findByIdAndUpdate(id, parsed.data, {
+      runValidators: true,
+    }).exec();
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
+    if (!updated) return { success: false, error: "notFound" };
+
+    revalidatePath("/", "layout");
+    return actionOk();
   } catch (error) {
-    console.error("Update experience error:", error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
+    console.error("[actions] updateExperience failed:", error);
+    return actionError(error, "saveFailed");
   }
 }
 
-// Delete an experience
-export async function deleteExperience(formData: FormData) {
+export async function deleteExperience(form: FormData): Promise<ActionResult> {
   try {
-    const id = formData.get("id") as string;
+    await requireAdmin();
 
-    if (!id) {
-      return {
-        success: false,
-        error: "Experience ID is required",
-      };
-    }
+    const id = formString(form, "id");
+    if (!id) return { success: false, error: "idRequired" };
 
     await connectDB();
-    await ExperienceModel.findByIdAndDelete(id);
+    const deleted = await ExperienceModel.findByIdAndDelete(id).exec();
+    if (!deleted) return { success: false, error: "notFound" };
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
+    revalidatePath("/", "layout");
+    return actionOk();
   } catch (error) {
-    console.error("Delete experience error:", error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
-  }
-}
-
-// Get all experiences
-export async function getExperiences() {
-  try {
-    await connectDB();
-    const experiences = await ExperienceModel.find({}).sort({ order: 1 }).lean();
-    return experiences;
-  } catch (error) {
-    console.error("Error fetching experiences:", error);
-    return [];
+    console.error("[actions] deleteExperience failed:", error);
+    return actionError(error, "deleteFailed");
   }
 }

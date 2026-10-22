@@ -1,213 +1,177 @@
 "use client";
-// components/WorkSection.tsx
-import {
-  AnimatedContainer,
-  AnimatedItem,
-} from "@/components/ui/AnimatedContainer";
-import { cardHover } from "@/lib/animations";
-import {
-  cn,
-  formatTechnologies,
-  getGithubUrl,
-  getProjectUrl,
-} from "@/lib/utils";
-import { Project } from "@/types";
+
 import { motion } from "framer-motion";
 import { ExternalLink, Github } from "lucide-react";
+import Link from "next/link";
+
+import type { Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { interpolate, localized } from "@/i18n/format";
+import { cn, formatTechnologies, getGithubUrl, getProjectUrl } from "@/lib/utils";
+import type { Project } from "@/types";
+import CaseStudyLink from "./CaseStudyLink";
+import { SectionHeading } from "./SectionHeading";
 import ProjectCard from "./ProjectCard";
 
 interface WorkSectionProps {
   projects: Project[];
+  locale: Locale;
+  labels: Dictionary["work"];
   className?: string;
 }
 
-export function WorkSection({ projects, className }: WorkSectionProps) {
+export function WorkSection({ projects, locale, labels, className }: WorkSectionProps) {
   const featuredProjects = projects.filter((p) => p.featured).slice(0, 3);
   const otherProjects = projects.filter((p) => !p.featured).slice(0, 6);
-
-  if (!projects || !Array.isArray(projects)) {
-    return (
-      <section
-        className={cn(
-          "min-h-screen flex items-center justify-center",
-          className
-        )}
-      >
-        <p className="text-[#ccd6f6]">No projects found</p>
-      </section>
-    );
-  }
 
   return (
     <section
       id="work"
-      className={cn("min-h-screen py-20 relative overflow-hidden", className)}
+      className={cn("relative flex min-h-full items-center", className)}
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute bottom-1/3 -right-32 w-96 h-96 rounded-full bg-[#64ffda]/4 blur-3xl"
-          animate={{ rotate: [0, 360], scale: [1, 1.2, 1] }}
-          transition={{ duration: 40, ease: "linear" }}
-        />
-      </div>
+      <div className="chapter-shell">
+        <SectionHeading index="03" title={labels.heading} className="mb-14" />
 
-      <div className="max-w-6xl mx-auto px-4 relative z-10">
-        <AnimatedContainer
-          variant="slideRight"
-          viewport={{ once: true, amount: 0.3 }}
-          className="space-y-16"
-        >
-          <AnimatedItem>
-            <div className="flex items-center mb-16">
-              <motion.span
-                className="text-[#64ffda] font-mono text-lg mr-4"
-                initial={{ opacity: 0, scale: 0 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                viewport={{ once: true }}
-              >
-                03.
-              </motion.span>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#ccd6f6]">
-                Some Things I&apos;ve Built
-              </h2>
-              <motion.div
-                className="flex-1 h-px bg-gradient-to-r from-[#233554] to-transparent ml-8"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                viewport={{ once: true }}
+        {featuredProjects.length > 0 ? (
+          <div className="space-y-20 md:space-y-28">
+            {featuredProjects.map((project, i) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                index={i}
+                locale={locale}
+                labels={labels}
               />
+            ))}
+          </div>
+        ) : (
+          <div className="max-w-xl space-y-3 py-16">
+            <div aria-hidden="true" className="text-5xl">
+              🚧
             </div>
-          </AnimatedItem>
+            <h3 className="text-safe font-semibold text-text" style={{ fontSize: "var(--fs-2)" }}>
+              {labels.emptyTitle}
+            </h3>
+            <p className="text-text-muted">{labels.emptyDescription}</p>
+          </div>
+        )}
 
-          {featuredProjects.length > 0 ? (
-            <div className="space-y-24">
-              {featuredProjects.map((project, index) => {
-                return (
-                  <ProjectCard
-                    index={index}
-                    project={project}
-                    key={project._id}
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <AnimatedItem variant="fadeSlideUp" className="text-center py-20">
-              <div className="space-y-4">
-                <div className="text-6xl mb-4">🚧</div>
-                <h3 className="text-2xl font-bold text-[#ccd6f6]">
-                  Projects Coming Soon
-                </h3>
-                <p className="text-[#8892b0] max-w-md mx-auto">
-                  I&apos;m currently working on some exciting projects. Check
-                  back soon to see what I&apos;ve been building!
-                </p>
-              </div>
-            </AnimatedItem>
-          )}
-
-          {otherProjects.length > 0 && (
-            <AnimatedItem variant="fadeSlideUp" className="pt-16">
-              <div className="text-center mb-12">
-                <h3 className="text-2xl md:text-3xl font-bold text-[#ccd6f6] mb-4">
-                  Other Projects
-                </h3>
-                <p className="text-[#8892b0]">
-                  A selection of other projects I&apos;ve worked on
-                </p>
-              </div>
-              <motion.div
-                className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-                variants={{
-                  hidden: {},
-                  visible: {
-                    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-                  },
-                }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
+        {otherProjects.length > 0 && (
+          <div className="pt-20 md:pt-28">
+            <div className="mb-10 max-w-2xl">
+              <h3
+                className="text-safe font-semibold text-text"
+                style={{ fontSize: "var(--fs-2)" }}
               >
-                {otherProjects.map((project) => (
-                  <motion.div
-                    key={project._id}
-                    className="bg-[#112240] p-6 rounded-lg border border-[#233554] group hover:border-[#64ffda]/20 transition-all duration-300"
-                    variants={cardHover}
-                    whileHover="hover"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="text-[#64ffda]">
-                        <svg
-                          className="w-10 h-10"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
-                          <path d="M14 2v6h6" />
-                          <path d="M16 13H8" />
-                          <path d="M16 17H8" />
-                          <path d="M10 9H8" />
-                        </svg>
-                      </div>
-                      <div className="flex gap-2">
-                        <a
-                          href={getGithubUrl(project)}
-                          className="text-[#8892b0] hover:text-[#64ffda] transition-colors"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Github className="w-5 h-5" />
-                        </a>
-                        <a
-                          href={getProjectUrl(project)}
-                          className="text-[#8892b0] hover:text-[#64ffda] transition-colors"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="w-5 h-5" />
-                        </a>
-                      </div>
-                    </div>
-                    <h4 className="text-xl font-semibold text-[#ccd6f6] mb-3 group-hover:text-[#64ffda] transition-colors">
-                      {project.title}
-                    </h4>
-                    <p className="text-[#8892b0] text-sm leading-relaxed mb-4">
-                      {project.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-auto">
-                      {formatTechnologies(project.technologies)
-                        .slice(0, 3)
-                        .map((tech) => (
-                          <span
-                            key={tech}
-                            className="text-[#8892b0] text-xs font-mono"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </AnimatedItem>
-          )}
+                {labels.otherHeading}
+              </h3>
+              <p className="mt-2 text-text-muted">{labels.otherDescription}</p>
+            </div>
 
-          <AnimatedItem variant="fadeSlideUp" className="text-center pt-12">
-            <motion.a
-              href="#"
-              className="inline-flex items-center px-6 py-3 border border-[#64ffda] text-[#64ffda] rounded-lg hover:bg-[#64ffda]/10 transition-all duration-300 font-mono text-sm"
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              View Archive
-              <ExternalLink className="ml-2 w-4 h-4" />
-            </motion.a>
-          </AnimatedItem>
-        </AnimatedContainer>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {otherProjects.map((project) => (
+                <OtherCard
+                  key={project.id}
+                  project={project}
+                  locale={locale}
+                  labels={labels}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+/** Compact, non-featured project tile: static, hover-lift, token-coloured. */
+function OtherCard({
+  project,
+  locale,
+  labels,
+}: {
+  project: Project;
+  locale: Locale;
+  labels: Dictionary["work"];
+}) {
+  const githubUrl = getGithubUrl(project);
+  const projectUrl = getProjectUrl(project);
+  const title = localized(locale, project.title, project.titleFa);
+  const description = localized(locale, project.description, project.descriptionFa);
+  const detailHref = `/${locale}/work/${project.slug}`;
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+      className="group flex min-w-0 flex-col gap-4 rounded-lg border border-border-soft bg-surface/60 p-6 backdrop-blur-sm transition-[transform,border-color,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:border-accent/30 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span className="text-accent" aria-hidden="true">
+          <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          </svg>
+        </span>
+        <div className="flex gap-2">
+          {githubUrl && (
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={interpolate(labels.repository, { title })}
+              className="text-text-muted transition-colors hover:text-accent"
+            >
+              <Github className="h-5 w-5" aria-hidden="true" />
+            </a>
+          )}
+          {projectUrl && (
+            <a
+              href={projectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={interpolate(labels.liveSite, { title })}
+              className="text-text-muted transition-colors hover:text-accent"
+            >
+              <ExternalLink className="h-5 w-5" aria-hidden="true" />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <h4
+        className="text-safe font-semibold text-text transition-colors duration-200 group-hover:text-accent"
+        style={{ fontSize: "var(--fs-1)", lineHeight: 1.2 }}
+      >
+        <Link
+          href={detailHref}
+          className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        >
+          {title}
+        </Link>
+      </h4>
+      <p className="text-safe line-clamp-3 text-sm leading-relaxed text-text-muted">
+        {description}
+      </p>
+
+      <ul className="mt-auto flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
+        {formatTechnologies(project.technologies)
+          .slice(0, 4)
+          .map((tech) => (
+            <li key={tech} className="font-mono text-xs text-text-muted">
+              {tech}
+            </li>
+          ))}
+      </ul>
+
+      <CaseStudyLink
+        href={detailHref}
+        label={labels.caseStudy}
+        className="inline-flex w-fit items-center gap-1.5 font-mono text-xs text-accent transition-colors hover:text-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      />
+    </motion.article>
   );
 }
 

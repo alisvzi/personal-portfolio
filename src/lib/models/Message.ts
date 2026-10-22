@@ -1,24 +1,23 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
-export interface IMessage extends Document {
-  name: string;
-  email: string;
-  subject?: string;
-  message: string;
-  read: boolean;
-  createdAt: Date;
-}
-
-const MessageSchema = new Schema<IMessage>(
+const messageSchema = new Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true },
-    subject: { type: String, required: false },
-    message: { type: String, required: true },
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    email: { type: String, required: true, trim: true, lowercase: true, maxlength: 254 },
+    subject: { type: String, required: false, trim: true, maxlength: 200 },
+    message: { type: String, required: true, trim: true, maxlength: 5000 },
     read: { type: Boolean, default: false },
   },
-  { timestamps: { createdAt: true, updatedAt: true } }
+  { timestamps: { createdAt: true, updatedAt: true } },
 );
 
-export default mongoose.models.Message ||
-  mongoose.model<IMessage>("Message", MessageSchema);
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ read: 1, createdAt: -1 });
+
+export type MessageDoc = InferSchemaType<typeof messageSchema>;
+
+const MessageModel =
+  (mongoose.models.Message as Model<MessageDoc>) ??
+  mongoose.model<MessageDoc>("Message", messageSchema);
+
+export default MessageModel;

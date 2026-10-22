@@ -1,5 +1,8 @@
 "use client";
 
+import { Edit, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+
 import { createSkill, deleteSkill, updateSkill } from "@/app/actions/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { formatActionError, interpolate } from "@/i18n/format";
+import type { AdminLabels } from "./types";
 
 type Skill = {
   id: string;
@@ -26,78 +29,100 @@ type Skill = {
   order: number;
 };
 
-export default function SkillsPanel() {
+interface SkillsPanelProps {
+  labels: AdminLabels;
+}
+
+/** Loads and narrows the skill list. See ProjectsPanel for the pattern note. */
+async function loadSkills(): Promise<Skill[]> {
+  const response = await fetch("/api/skills");
+  if (!response.ok) throw new Error("fetch failed");
+
+  const data = (await response.json()) as { skills?: unknown };
+  const list = Array.isArray(data.skills) ? data.skills : [];
+
+  return list.map((raw) => {
+    const skill = raw as Record<string, unknown>;
+    return {
+      id: String(skill.id ?? skill._id ?? ""),
+      name: String(skill.name ?? ""),
+      nameFa: String(skill.nameFa ?? ""),
+      category: String(skill.category ?? ""),
+      level: typeof skill.level === "number" ? skill.level : 50,
+      icon: String(skill.icon ?? ""),
+      order: typeof skill.order === "number" ? skill.order : 0,
+    };
+  });
+}
+
+export default function SkillsPanel({ labels }: SkillsPanelProps) {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [formError, setFormError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setSkills(await loadSkills());
+      setFormError("");
+    } catch {
+      setFormError(labels.errors.loadFailed);
+    }
+  }, [labels.errors.loadFailed]);
 
   useEffect(() => {
-    fetchSkills();
-  }, []);
+    let cancelled = false;
 
-  const fetchSkills = async () => {
-    setIsLoading(true);
-    setFormError("");
-    try {
-      const response = await fetch("/api/skills");
-      if (!response.ok) throw new Error("Failed to fetch skills");
-      const data = await response.json();
-      const arr = Array.isArray(data?.skills) ? data.skills : [];
-      setSkills(
-        arr.map((s: any) => ({
-          id: s._id || s.id,
-          name: s.name || "",
-          nameFa: s.nameFa || "",
-          category: s.category || "",
-          level: typeof s.level === "number" ? s.level : 50,
-          icon: s.icon || "",
-          order: typeof s.order === "number" ? s.order : 0,
-        }))
-      );
-    } catch (err: any) {
-      setFormError(err.message || "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    loadSkills()
+      .then((items) => {
+        if (cancelled) return;
+        setSkills(items);
+        setFormError("");
+      })
+      .catch(() => {
+        if (!cancelled) setFormError(labels.errors.loadFailed);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  const handleEditSkill = (skill: Skill) => {
-    setEditingSkill(skill);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingSkill(null);
-    setFormError("");
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [labels.errors.loadFailed]);
 
   const handleDeleteSkill = async (id: string) => {
-    if (confirm("Are you sure you want to delete this skill?")) {
-      try {
-        const formData = new FormData();
-        formData.append("id", id);
+    if (!window.confirm(labels.confirm.deleteSkill)) return;
 
-        const result = await deleteSkill(formData);
-        if (result.success) {
-          fetchSkills();
-        } else {
-          setFormError(result.error || "Failed to delete skill");
-        }
-      } catch (error) {
-        console.error("Error deleting skill:", error);
-        setFormError("An unexpected error occurred");
+    setDeletingId(id);
+    try {
+      const formData = new FormData();
+      formData.append("id", id);
+
+      const result = await deleteSkill(formData);
+      if (result.success) {
+        await refresh();
+      } else {
+        setFormError(formatActionError(labels.errors, result.error, result.values));
       }
+    } catch {
+      setFormError(labels.errors.unexpected);
+    } finally {
+      setDeletingId(null);
     }
   };
 
   if (isLoading) {
-    return <div>Loading skills...</div>;
+    return <p className="text-text-muted">{labels.skills.loading}</p>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Skills</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-text">
+          {labels.skills.heading}
+        </h2>
         <Button
           onClick={() =>
             setEditingSkill({
@@ -107,16 +132,29 @@ export default function SkillsPanel() {
               level: 50,
               icon: "",
               order: 0,
-            } as Skill)
+            })
           }
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Skill
+          <Plus className="me-2 h-4 w-4" aria-hidden="true" />
+          {labels.actions.add}
         </Button>
       </div>
 
+      {/*
+        Makes the link between this tab and the public card explicit. The
+        "Tools I work with" card on the home page is not separate content — it
+        is a live render of this exact collection, so a skill added here appears
+        there on the next request with no extra step.
+      */}
+      <p className="rounded-md border border-accent/25 bg-accent-soft/40 p-3 text-sm leading-relaxed text-text-muted">
+        {labels.skills.toolboxHint}
+      </p>
+
       {formError && (
-        <div className="p-3 bg-red-100 text-red-600 rounded-md text-sm">
+        <div
+          role="alert"
+          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
+        >
           {formError}
         </div>
       )}
@@ -124,69 +162,94 @@ export default function SkillsPanel() {
       {editingSkill && (
         <SkillForm
           skill={editingSkill}
-          onCancel={handleCancelEdit}
+          labels={labels}
+          onCancel={() => {
+            setEditingSkill(null);
+            setFormError("");
+          }}
           onSuccess={() => {
             setEditingSkill(null);
-            fetchSkills();
+            refresh();
           }}
         />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {skills.map((skill) => (
-          <SkillCard
-            key={skill.id}
-            skill={skill}
-            onEdit={handleEditSkill}
-            onDelete={handleDeleteSkill}
-          />
-        ))}
-      </div>
+      {skills.length === 0 && !editingSkill && !formError ? (
+        <p className="py-8 text-center text-sm text-text-muted">
+          {labels.skills.empty}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {skills.map((skill) => (
+            <SkillCard
+              key={skill.id}
+              skill={skill}
+              labels={labels}
+              onEdit={setEditingSkill}
+              onDelete={handleDeleteSkill}
+              isDeleting={deletingId === skill.id}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 interface SkillCardProps {
   skill: Skill;
+  labels: AdminLabels;
   onEdit: (skill: Skill) => void;
   onDelete: (id: string) => void;
+  isDeleting: boolean;
 }
 
-function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
+function SkillCard({ skill, labels, onEdit, onDelete, isDeleting }: SkillCardProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between">
           <CardTitle className="text-lg">{skill.name}</CardTitle>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(skill)}>
-              <Edit className="h-4 w-4" />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(skill)}
+              aria-label={labels.actions.edit}
+            >
+              <Edit className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onDelete(skill.id)}
+              disabled={isDeleting}
+              aria-label={labels.actions.delete}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <Badge>{skill.category}</Badge>
-          <div className="flex items-center space-x-2">
-            <div className="w-full bg-app-gray-light rounded-full h-2.5">
+          {skill.category && <Badge>{skill.category}</Badge>}
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-full rounded-full bg-surface-2">
               <div
-                className="bg-app-blue h-2.5 rounded-full"
+                className="h-2.5 rounded-full bg-accent"
                 style={{ width: `${skill.level}%` }}
-              ></div>
+              />
             </div>
             <span className="text-sm">{skill.level}%</span>
           </div>
-          <div className="flex justify-between text-sm text-app-gray-dark">
-            <span>Icon: {skill.icon}</span>
-            <span>Order: {skill.order}</span>
+          <div className="flex justify-between text-sm text-text-muted">
+            <span>
+              {labels.skills.icon}: {skill.icon}
+            </span>
+            <span>
+              {interpolate(labels.skills.orderLabel, { order: skill.order })}
+            </span>
           </div>
         </div>
       </CardContent>
@@ -196,11 +259,12 @@ function SkillCard({ skill, onEdit, onDelete }: SkillCardProps) {
 
 interface SkillFormProps {
   skill: Skill;
+  labels: AdminLabels;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-function SkillForm({ skill, onCancel, onSuccess }: SkillFormProps) {
+function SkillForm({ skill, labels, onCancel, onSuccess }: SkillFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [level, setLevel] = useState(skill.level);
@@ -217,30 +281,22 @@ function SkillForm({ skill, onCancel, onSuccess }: SkillFormProps) {
 
   const handleSubmit = async (formData: FormData) => {
     setError("");
-
     formData.set("level", level.toString());
-
-    if (skill.id) {
-      formData.append("id", skill.id);
-    }
+    if (skill.id) formData.append("id", skill.id);
 
     startTransition(async () => {
       try {
-        let result;
-        if (skill.id) {
-          result = await updateSkill(formData);
-        } else {
-          result = await createSkill(formData);
-        }
+        const result = skill.id
+          ? await updateSkill(formData)
+          : await createSkill(formData);
 
         if (result.success) {
           onSuccess();
         } else {
-          setError(result.error || "Failed to save skill");
+          setError(formatActionError(labels.errors, result.error, result.values));
         }
-      } catch (error) {
-        console.error("Error saving skill:", error);
-        setError("An unexpected error occurred");
+      } catch {
+        setError(labels.errors.unexpected);
       }
     });
   };
@@ -248,34 +304,49 @@ function SkillForm({ skill, onCancel, onSuccess }: SkillFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{skill.id ? "Edit Skill" : "Add New Skill"}</CardTitle>
+        <CardTitle>
+          {skill.id ? labels.skills.editTitle : labels.skills.addTitle}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-app-error-light text-app-error-text rounded-md text-sm">
+            <div
+              role="alert"
+              className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
+            >
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{labels.skills.name}</Label>
               <Input id="name" name="name" defaultValue={skill.name} required />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="nameFa">Name (Persian)</Label>
-              <Input id="nameFa" name="nameFa" defaultValue={skill.nameFa} />
+              <Label htmlFor="nameFa">{labels.skills.nameFa}</Label>
+              <Input
+                id="nameFa"
+                name="nameFa"
+                defaultValue={skill.nameFa}
+                dir="rtl"
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              {/*
+                A Radix `SelectTrigger` renders a `button`, so a `<label for>`
+                cannot associate with it — the accessible name is set on the
+                trigger itself.
+              */}
+              <Label>{labels.skills.category}</Label>
               <Select name="category" defaultValue={skill.category}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger aria-label={labels.skills.category}>
+                  <SelectValue placeholder={labels.skills.selectCategory} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
@@ -288,26 +359,28 @@ function SkillForm({ skill, onCancel, onSuccess }: SkillFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="icon">Icon</Label>
-              <Input id="icon" name="icon" defaultValue={skill.icon} required />
+              <Label htmlFor="icon">{labels.skills.icon}</Label>
+              <Input id="icon" name="icon" defaultValue={skill.icon} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="level">Skill Level: {level}%</Label>
+            <Label htmlFor="level">
+              {interpolate(labels.skills.levelLabel, { level })}
+            </Label>
             <Input
               id="level"
               type="range"
               min="0"
               max="100"
               value={level}
-              onChange={(e) => setLevel(parseInt(e.target.value))}
+              onChange={(event) => setLevel(Number.parseInt(event.target.value, 10))}
               className="w-full"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="order">Display Order</Label>
+            <Label htmlFor="order">{labels.skills.order}</Label>
             <Input
               id="order"
               name="order"
@@ -316,16 +389,12 @@ function SkillForm({ skill, onCancel, onSuccess }: SkillFormProps) {
             />
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {labels.actions.cancel}
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              aria-disabled={isPending}
-            >
-              {isPending ? "Saving..." : "Save Skill"}
+            <Button type="submit" disabled={isPending} aria-disabled={isPending}>
+              {isPending ? labels.actions.saving : labels.skills.saveLabel}
             </Button>
           </div>
         </form>

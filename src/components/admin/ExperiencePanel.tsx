@@ -1,5 +1,8 @@
 "use client";
 
+import { Edit, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+
 import {
   createExperience,
   deleteExperience,
@@ -11,8 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { formatActionError, interpolate } from "@/i18n/format";
+import type { AdminLabels } from "./types";
 
 type Experience = {
   id: string;
@@ -24,87 +27,111 @@ type Experience = {
   order: number;
 };
 
-export default function ExperiencePanel() {
+interface ExperiencePanelProps {
+  labels: AdminLabels;
+}
+
+/** Loads and narrows the experience list. See ProjectsPanel for the pattern note. */
+async function loadExperiences(): Promise<Experience[]> {
+  const response = await fetch("/api/experiences");
+  if (!response.ok) throw new Error("fetch failed");
+
+  const data = (await response.json()) as { experiences?: unknown };
+  const list = Array.isArray(data.experiences) ? data.experiences : [];
+
+  return list.map((raw) => {
+    const experience = raw as Record<string, unknown>;
+    const technologies = Array.isArray(experience.technologies)
+      ? (experience.technologies as string[])
+      : typeof experience.technologies === "string"
+        ? experience.technologies
+            .split(",")
+            .map((tech) => tech.trim())
+            .filter(Boolean)
+        : [];
+
+    return {
+      id: String(experience.id ?? experience._id ?? ""),
+      title: String(experience.title ?? ""),
+      company: String(experience.company ?? ""),
+      period: String(experience.period ?? ""),
+      description: String(experience.description ?? ""),
+      technologies,
+      order: typeof experience.order === "number" ? experience.order : 0,
+    };
+  });
+}
+
+export default function ExperiencePanel({ labels }: ExperiencePanelProps) {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingExperience, setEditingExperience] = useState<Experience | null>(
-    null
+    null,
   );
   const [formError, setFormError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      setExperiences(await loadExperiences());
+      setFormError("");
+    } catch {
+      setFormError(labels.errors.loadFailed);
+    }
+  }, [labels.errors.loadFailed]);
 
   useEffect(() => {
-    fetchExperiences();
-  }, []);
+    let cancelled = false;
 
-  const fetchExperiences = async () => {
-    setIsLoading(true);
-    setFormError("");
-    try {
-      const response = await fetch("/api/experiences");
-      if (!response.ok) throw new Error("Failed to fetch experiences");
-      const data = await response.json();
-      const arr = Array.isArray(data?.experiences) ? data.experiences : [];
-      setExperiences(
-        arr.map((e: any) => ({
-          id: e._id || e.id,
-          title: e.title || "",
-          company: e.company || "",
-          period: e.period || "",
-          description: e.description || "",
-          technologies: Array.isArray(e.technologies)
-            ? e.technologies
-            : typeof e.technologies === "string"
-            ? e.technologies
-                .split(",")
-                .map((t: string) => t.trim())
-                .filter(Boolean)
-            : [],
-          order: typeof e.order === "number" ? e.order : 0,
-        }))
-      );
-    } catch (err: any) {
-      setFormError(err.message || "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    loadExperiences()
+      .then((items) => {
+        if (cancelled) return;
+        setExperiences(items);
+        setFormError("");
+      })
+      .catch(() => {
+        if (!cancelled) setFormError(labels.errors.loadFailed);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  const handleEditExperience = (experience: Experience) => {
-    setEditingExperience(experience);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingExperience(null);
-    setFormError("");
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [labels.errors.loadFailed]);
 
   const handleDeleteExperience = async (id: string) => {
-    if (confirm("Are you sure you want to delete this experience?")) {
-      try {
-        const formData = new FormData();
-        formData.append("id", id);
+    if (!window.confirm(labels.confirm.deleteExperience)) return;
 
-        const result = await deleteExperience(formData);
-        if (result.success) {
-          fetchExperiences();
-        } else {
-          setFormError(result.error || "Failed to delete experience");
-        }
-      } catch (error) {
-        console.error("Error deleting experience:", error);
-        setFormError("An unexpected error occurred");
+    setDeletingId(id);
+    try {
+      const formData = new FormData();
+      formData.append("id", id);
+
+      const result = await deleteExperience(formData);
+      if (result.success) {
+        await refresh();
+      } else {
+        setFormError(formatActionError(labels.errors, result.error, result.values));
       }
+    } catch {
+      setFormError(labels.errors.unexpected);
+    } finally {
+      setDeletingId(null);
     }
   };
 
   if (isLoading) {
-    return <div>Loading experiences...</div>;
+    return <p className="text-text-muted">{labels.experiences.loading}</p>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Experiences</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-text">
+          {labels.experiences.heading}
+        </h2>
         <Button
           onClick={() =>
             setEditingExperience({
@@ -115,16 +142,19 @@ export default function ExperiencePanel() {
               description: "",
               technologies: [],
               order: 0,
-            } as Experience)
+            })
           }
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Experience
+          <Plus className="me-2 h-4 w-4" aria-hidden="true" />
+          {labels.actions.add}
         </Button>
       </div>
 
       {formError && (
-        <div className="p-3 bg-red-100 text-red-600 rounded-md text-sm">
+        <div
+          role="alert"
+          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
+        >
           {formError}
         </div>
       )}
@@ -132,74 +162,100 @@ export default function ExperiencePanel() {
       {editingExperience && (
         <ExperienceForm
           experience={editingExperience}
-          onCancel={handleCancelEdit}
+          labels={labels}
+          onCancel={() => {
+            setEditingExperience(null);
+            setFormError("");
+          }}
           onSuccess={() => {
             setEditingExperience(null);
-            fetchExperiences();
+            refresh();
           }}
         />
       )}
-      <div className="grid grid-cols-1 gap-4">
-        {experiences.map((experience) => (
-          <ExperienceCard
-            key={experience.id}
-            experience={experience}
-            onEdit={handleEditExperience}
-            onDelete={handleDeleteExperience}
-          />
-        ))}
-      </div>
+
+      {experiences.length === 0 && !editingExperience && !formError ? (
+        <p className="py-8 text-center text-sm text-text-muted">
+          {labels.experiences.empty}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {experiences.map((experience) => (
+            <ExperienceCard
+              key={experience.id}
+              experience={experience}
+              labels={labels}
+              onEdit={setEditingExperience}
+              onDelete={handleDeleteExperience}
+              isDeleting={deletingId === experience.id}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 interface ExperienceCardProps {
   experience: Experience;
+  labels: AdminLabels;
   onEdit: (experience: Experience) => void;
   onDelete: (id: string) => void;
+  isDeleting: boolean;
 }
 
-function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
+function ExperienceCard({
+  experience,
+  labels,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: ExperienceCardProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-xl">{experience.title}</CardTitle>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-text-muted">
               {experience.company} | {experience.period}
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEdit(experience)}
+              aria-label={labels.actions.edit}
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4" aria-hidden="true" />
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onDelete(experience.id)}
+              disabled={isDeleting}
+              aria-label={labels.actions.delete}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <p className="text-sm line-clamp-2">{experience.description}</p>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {experience.technologies.map((tech, index) => (
-              <Badge key={index} variant="secondary">
+          <p className="line-clamp-2 text-sm">{experience.description}</p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {experience.technologies.map((tech, i) => (
+              <Badge key={`${tech}-${i}`} variant="secondary">
                 {tech}
               </Badge>
             ))}
           </div>
-          <div className="text-xs text-gray-500 mt-2">
-            Order: {experience.order}
+          <div className="mt-2 text-xs text-text-muted">
+            {interpolate(labels.experiences.orderLabel, {
+              order: experience.order,
+            })}
           </div>
         </div>
       </CardContent>
@@ -209,12 +265,14 @@ function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
 
 interface ExperienceFormProps {
   experience: Experience;
+  labels: AdminLabels;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
 function ExperienceForm({
   experience,
+  labels,
   onCancel,
   onSuccess,
 }: ExperienceFormProps) {
@@ -223,25 +281,21 @@ function ExperienceForm({
 
   const handleSubmit = async (formData: FormData) => {
     setError("");
+    if (experience.id) formData.append("id", experience.id);
 
     startTransition(async () => {
       try {
-        let result;
-        if (experience.id) {
-          formData.append("id", experience.id);
-          result = await updateExperience(formData);
-        } else {
-          result = await createExperience(formData);
-        }
+        const result = experience.id
+          ? await updateExperience(formData)
+          : await createExperience(formData);
 
         if (result.success) {
           onSuccess();
         } else {
-          setError(result.error || "Failed to save experience");
+          setError(formatActionError(labels.errors, result.error, result.values));
         }
-      } catch (error) {
-        console.error("Error saving experience:", error);
-        setError("An unexpected error occurred");
+      } catch {
+        setError(labels.errors.unexpected);
       }
     });
   };
@@ -250,60 +304,81 @@ function ExperienceForm({
     <Card>
       <CardHeader>
         <CardTitle>
-          {experience.id ? "Edit Experience" : "Add New Experience"}
+          {experience.id
+            ? labels.experiences.editTitle
+            : labels.experiences.addTitle}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-app-error-light text-app-error-text rounded-md text-sm">
+            <div
+              role="alert"
+              className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
+            >
               {error}
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={experience.title}
-              required
-            />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">{labels.experiences.title}</Label>
+              <Input
+                id="title"
+                name="title"
+                defaultValue={experience.title}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="company">{labels.experiences.company}</Label>
+              <Input
+                id="company"
+                name="company"
+                defaultValue={experience.company}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="period">{labels.experiences.period}</Label>
+              <Input
+                id="period"
+                name="period"
+                defaultValue={experience.period}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="order">{labels.experiences.order}</Label>
+              <Input
+                id="order"
+                name="order"
+                type="number"
+                defaultValue={experience.order.toString()}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company">Company</Label>
-            <Input
-              id="company"
-              name="company"
-              defaultValue={experience.company}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="period">Period</Label>
-            <Input
-              id="period"
-              name="period"
-              defaultValue={experience.period}
-              placeholder="e.g., Jan 2020 - Present"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{labels.experiences.description}</Label>
             <Textarea
               id="description"
               name="description"
               defaultValue={experience.description}
+              rows={4}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="technologies">Technologies (comma separated)</Label>
+            <Label htmlFor="technologies">
+              {labels.experiences.technologies}
+            </Label>
             <Input
               id="technologies"
               name="technologies"
@@ -312,23 +387,12 @@ function ExperienceForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="order">Display Order</Label>
-            <Input
-              id="order"
-              name="order"
-              type="number"
-              defaultValue={experience.order.toString()}
-              required
-            />
-          </div>
-
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {labels.actions.cancel}
             </Button>
-            <Button type="submit" aria-disabled={isPending}>
-              {isPending ? "Saving..." : "Save Experience"}
+            <Button type="submit" disabled={isPending} aria-disabled={isPending}>
+              {isPending ? labels.actions.saving : labels.experiences.saveLabel}
             </Button>
           </div>
         </form>

@@ -1,120 +1,98 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
+import { actionError, actionOk, type ActionErrorKey, type ActionResult } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
 import { connectDB } from "@/lib/db/mongodb";
 import SkillModel from "@/lib/models/Skill";
+import { LIMITS, formNumber, formString } from "@/lib/validation";
 
-// Skill type definition
-type Skill = {
-  id?: string;
-  name: string;
-  nameFa?: string;
-  category: string;
-  level: number;
-  icon: string;
-  order: number;
-};
+/** Skill mutations. Every entry point is gated behind an admin session. */
 
-// Create a new skill
-export async function createSkill(formData: FormData) {
-  // Validate required fields
-  const name = formData.get("name") as string;
-  const category = formData.get("category") as string;
-  
-  if (!name || !category) {
-    return { success: false, error: "Name and category are required" };
-  }
-  
+function buildSkillData(form: FormData) {
+  return {
+    name: formString(form, "name")!,
+    nameFa: formString(form, "nameFa"),
+    category: formString(form, "category"),
+    level: formNumber(form, "level", 50, { min: 0, max: 100 }),
+    icon: formString(form, "icon"),
+    order: formNumber(form, "order", 0),
+  };
+}
+
+function validate(form: FormData): ActionErrorKey | null {
+  const name = formString(form, "name");
+  if (!name) return "nameRequired";
+  if (name.length > LIMITS.skillName) return "nameTooLong";
+
+  const nameFa = formString(form, "nameFa");
+  if (nameFa && nameFa.length > LIMITS.skillName) return "nameFaTooLong";
+
+  const category = formString(form, "category");
+  if (category && category.length > LIMITS.category) return "categoryTooLong";
+
+  return null;
+}
+
+export async function createSkill(form: FormData): Promise<ActionResult> {
   try {
+    await requireAdmin();
+
+    const error = validate(form);
+    if (error) return { success: false, error };
+
     await connectDB();
-    
-    const skillData = {
-      name,
-      nameFa: formData.get("nameFa") as string,
-      category,
-      level: parseInt(formData.get("level") as string) || 50,
-      icon: formData.get("icon") as string,
-      order: parseInt(formData.get("order") as string) || 0,
-    };
+    await SkillModel.create(buildSkillData(form));
 
-    await SkillModel.create(skillData);
-
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
-  } catch (error) {
-    console.error("Error creating skill:", error);
-    return { success: false, error: (error as Error).message };
+    revalidatePath("/", "layout");
+    return actionOk();
+  } catch (err) {
+    console.error("[actions] createSkill failed:", err);
+    return actionError(err, "saveFailed");
   }
 }
 
-// Update an existing skill
-export async function updateSkill(formData: FormData) {
-  const id = formData.get("id") as string;
-  if (!id) {
-    return { success: false, error: "Skill ID is required" };
-  }
-  
-  // Validate required fields
-  const name = formData.get("name") as string;
-  const category = formData.get("category") as string;
-  
-  if (!name || !category) {
-    return { success: false, error: "Name and category are required" };
-  }
-  
+export async function updateSkill(form: FormData): Promise<ActionResult> {
   try {
+    await requireAdmin();
+
+    const id = formString(form, "id");
+    if (!id) return { success: false, error: "idRequired" };
+
+    const error = validate(form);
+    if (error) return { success: false, error };
+
     await connectDB();
-    
-    const skillData = {
-      name,
-      nameFa: formData.get("nameFa") as string,
-      category,
-      level: parseInt(formData.get("level") as string) || 50,
-      icon: formData.get("icon") as string,
-      order: parseInt(formData.get("order") as string) || 0,
-    };
+    const updated = await SkillModel.findByIdAndUpdate(id, buildSkillData(form), {
+      runValidators: true,
+    }).exec();
 
-    await SkillModel.findByIdAndUpdate(id, skillData, { new: true });
+    if (!updated) return { success: false, error: "notFound" };
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
-  } catch (error) {
-    console.error("Error updating skill:", error);
-    return { success: false, error: (error as Error).message };
+    revalidatePath("/", "layout");
+    return actionOk();
+  } catch (err) {
+    console.error("[actions] updateSkill failed:", err);
+    return actionError(err, "saveFailed");
   }
 }
 
-// Delete a skill
-export async function deleteSkill(formData: FormData) {
-  const id = formData.get("id") as string;
-  if (!id) {
-    return { success: false, error: "Skill ID is required" };
-  }
-  
+export async function deleteSkill(form: FormData): Promise<ActionResult> {
   try {
+    await requireAdmin();
+
+    const id = formString(form, "id");
+    if (!id) return { success: false, error: "idRequired" };
+
     await connectDB();
-    await SkillModel.findByIdAndDelete(id);
+    const deleted = await SkillModel.findByIdAndDelete(id).exec();
+    if (!deleted) return { success: false, error: "notFound" };
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting skill:", error);
-    return { success: false, error: (error as Error).message };
-  }
-}
-
-// Get all skills
-export async function getSkills() {
-  try {
-    await connectDB();
-    const skills = await SkillModel.find({}).sort({ order: 1 }).lean();
-
-    return skills;
-  } catch (error) {
-    console.error("Error fetching skills:", error);
-    return [];
+    revalidatePath("/", "layout");
+    return actionOk();
+  } catch (err) {
+    console.error("[actions] deleteSkill failed:", err);
+    return actionError(err, "deleteFailed");
   }
 }

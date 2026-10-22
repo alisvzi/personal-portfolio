@@ -1,70 +1,52 @@
-import fs from "fs";
-import path from "path";
 import sharp from "sharp";
 
 /**
- * Create a simple placeholder image (PNG) and save it to public/uploads/projects
- * Returns the absolute file path and the public URL.
+ * Builds a small branded placeholder image for projects saved without a
+ * screenshot.
+ *
+ * Returns a WebP buffer instead of writing a file: the previous implementation
+ * wrote into `public/uploads`, which is read-only in production on Vercel.
  */
-export async function createPlaceholderImage({
-  width = 120,
-  height = 80,
-  color = { r: 17, g: 34, b: 64, alpha: 1 }, // #112240
+export async function createPlaceholderBuffer({
+  width = 1200,
+  height = 750,
   text = "",
 }: {
   width?: number;
   height?: number;
-  color?: { r: number; g: number; b: number; alpha?: number };
   text?: string;
-} = {}): Promise<{ filePath: string; publicUrl: string }> {
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "projects");
-  await fs.promises.mkdir(uploadsDir, { recursive: true });
+} = {}): Promise<Buffer> {
+  const safeText = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .slice(0, 40);
 
-  const filename = `placeholder_${Date.now()}.png`;
-  const filePath = path.join(uploadsDir, filename);
-  const publicUrl = `/uploads/projects/${filename}`;
+  const overlay = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <defs>
+      <pattern id="diag" patternUnits="userSpaceOnUse" width="24" height="24">
+        <path d="M0,24 l24,-24" stroke="rgba(100,255,218,0.07)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#diag)"/>
+    ${
+      safeText
+        ? `<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+             fill="rgba(204,214,246,0.75)" font-size="48"
+             font-family="system-ui, sans-serif">${safeText}</text>`
+        : ""
+    }
+  </svg>`;
 
-  const background = {
-    r: color.r,
-    g: color.g,
-    b: color.b,
-    alpha: color.alpha ?? 1,
-  };
-
-  const image = sharp({
+  return sharp({
     create: {
       width,
       height,
       channels: 4,
-      background,
+      background: { r: 17, g: 34, b: 64, alpha: 1 },
     },
-  });
-
-  // Optionally overlay a subtle diagonal line pattern for texture
-  const svgPattern = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>
-    <defs>
-      <pattern id='diag' patternUnits='userSpaceOnUse' width='10' height='10'>
-        <path d='M0,10 l10,-10' stroke='rgba(100,255,218,0.08)' stroke-width='1'/>
-      </pattern>
-    </defs>
-    <rect width='100%' height='100%' fill='url(#diag)'/>
-  </svg>`;
-
-  const composite: sharp.OverlayOptions[] = [
-    { input: Buffer.from(svgPattern), top: 0, left: 0 },
-  ];
-
-  if (text) {
-    const svgText = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}'>
-      <style>
-        text { fill: rgba(204,214,246,0.8); font-size: 14px; font-family: Arial, sans-serif; }
-      </style>
-      <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'>${text}</text>
-    </svg>`;
-    composite.push({ input: Buffer.from(svgText), top: 0, left: 0 });
-  }
-
-  await image.composite(composite).png().toFile(filePath);
-
-  return { filePath, publicUrl };
+  })
+    .composite([{ input: Buffer.from(overlay), top: 0, left: 0 }])
+    .webp({ quality: 80 })
+    .toBuffer();
 }

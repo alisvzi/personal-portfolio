@@ -1,67 +1,90 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+
+import { loginAdmin } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { loginAdmin } from "@/app/actions/auth";
-import { useRouter } from "next/navigation";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { formatActionError } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
 
 interface LoginFormProps {
-  onLoginSuccess: () => void;
+  locale: Locale;
+  labels: Dictionary["login"];
 }
 
-export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export default function LoginForm({ locale, labels }: LoginFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (formData: FormData) => {
     setError("");
-    
+
     startTransition(async () => {
-      const result = await loginAdmin(formData);
-      
-      if (result.success) {
-        onLoginSuccess();
-        router.push('/admin');
-      } else {
-        setError(result.error || "Login failed");
+      try {
+        const result = await loginAdmin(formData);
+
+        if (result.success) {
+          // The proxy sends signed-in visitors away from the sign-in page, so a
+          // refresh is all that is needed to land on the dashboard.
+          router.replace(`/${locale}/admin`);
+          router.refresh();
+        } else {
+          setError(formatActionError(labels.errors, result.error, result.values));
+        }
+      } catch {
+        // Without this the form would stay in its pending state forever on a
+        // dropped connection, with no feedback at all.
+        setError(labels.errors.unavailable);
       }
     });
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-app-gray-light">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <Card className="w-full max-w-md border-border-soft bg-surface">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
+          <CardTitle className="text-center text-2xl text-text">
+            {labels.title}
+          </CardTitle>
+          <p className="text-center text-sm text-text-muted">{labels.subtitle}</p>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-app-error-light text-app-error-text rounded-md text-sm">
+              <div
+                role="alert"
+                className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
+              >
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-text">
+                {labels.email}
+              </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="username"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-text">
+                {labels.password}
+              </Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
               />
             </div>
@@ -71,7 +94,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               disabled={isPending}
               aria-disabled={isPending}
             >
-              {isPending ? "Logging in..." : "Login"}
+              {isPending ? labels.submitting : labels.submit}
             </Button>
           </form>
         </CardContent>

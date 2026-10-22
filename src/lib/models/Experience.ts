@@ -1,14 +1,30 @@
-import { Experience } from "@/types";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
-const ExperienceSchema: Schema<Experience> = new Schema({
-  title: { type: String, required: true },
-  company: { type: String, required: true },
-  period: { type: String, required: true },
-  description: { type: String, required: true },
-  technologies: { type: [String], required: true },
-  order: { type: Number, default: 0 }
-});
+const experienceSchema = new Schema(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 160 },
+    company: { type: String, required: true, trim: true, maxlength: 160 },
+    period: { type: String, required: true, trim: true, maxlength: 80 },
+    description: { type: String, required: true, trim: true, maxlength: 2000 },
+    technologies: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: (value: string[]) => value.length > 0 && value.length <= 24,
+        message: "Between 1 and 24 technologies are required",
+      },
+    },
+    order: { type: Number, default: 0, min: 0, max: 9999 },
+  },
+  { timestamps: true },
+);
 
-export default mongoose.models.Experience ||
-  mongoose.model<Experience>("Experience", ExperienceSchema);
+experienceSchema.index({ order: 1, _id: -1 });
+
+export type ExperienceDoc = InferSchemaType<typeof experienceSchema>;
+
+const ExperienceModel =
+  (mongoose.models.Experience as Model<ExperienceDoc>) ??
+  mongoose.model<ExperienceDoc>("Experience", experienceSchema);
+
+export default ExperienceModel;

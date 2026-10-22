@@ -1,0 +1,152 @@
+/*
+ * design-system/motion.css
+ * ---------------------------------------------------------------------------
+ * Keyframes + scroll-driven reveals + reduced-motion policy.
+ *
+ * Rules (design-engineering guidance):
+ *  - Ambient loops stay off the main thread where possible (CSS only).
+ *  - Nothing here animates layout/paint properties — only transform/opacity.
+ *  - prefers-reduced-motion collapses motion to near-zero; opacity/colour
+ *    transitions that aid comprehension are kept.
+ */
+
+@keyframes grid-drift {
+  to {
+    background-position: var(--grid-size) var(--grid-size);
+  }
+}
+
+@keyframes aurora-shift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.15);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sheen {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* ---- Route progress bar -------------------------------------------------- */
+
+/*
+ * Sits above every fixed element (nav pill is z-50) and spans the viewport.
+ * Hidden by default; `data-active` is toggled imperatively by
+ * `components/layout/RouteProgress.tsx`.
+ */
+.route-progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 100;
+  height: 2px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms linear;
+}
+
+.route-progress[data-active="true"] {
+  opacity: 1;
+}
+
+.route-progress__bar {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: route-progress-sweep 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes route-progress-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+/*
+ * Reduced motion: a single static line instead of a sweeping one. The bar still
+ * appears (it is status information, not decoration), it just stops moving.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .route-progress__bar {
+    animation: none;
+    width: 100%;
+    transform: none;
+  }
+}
+
+/*
+ * Scroll-driven reveal (CSS Scroll-driven Animations). Progressive enhancement:
+ * ignored where animation-timeline is unsupported, so it never blocks content.
+ */
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll {
+    animation: reveal-in linear both;
+    animation-timeline: view(inline);
+    animation-range: entry 5% cover 35%;
+  }
+
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+/* Reduced motion: collapse everything, keep comprehension. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal-on-scroll {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

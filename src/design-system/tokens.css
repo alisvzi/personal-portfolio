@@ -1,0 +1,162 @@
+/*
+ * design-system/tokens.css
+ * ---------------------------------------------------------------------------
+ * Single source of truth for the portfolio's visual language (v2).
+ *
+ * Principles:
+ *  - Colour is authored in OKLCH (perceptually uniform) with a P3 upgrade path.
+ *  - A dual accent (cyan + violet) gives gradients real depth instead of a
+ *    single flat hue.
+ *  - Type is fluid (clamp), spacing follows an 8pt rhythm, and every surface,
+ *    line and elevation step is a named token — no ad-hoc values in components.
+ *  - Motion uses custom cubic-beziers and deliberately short UI durations.
+ */
+
+@layer base {
+  :root {
+    /* ---- Surfaces (deep navy, layered for real depth) ---- */
+    --bg: oklch(17% 0.03 262);
+    --bg-elevated: oklch(21% 0.035 262);
+    --surface: oklch(24% 0.035 262);
+    --surface-2: oklch(28% 0.035 262);
+    --surface-3: oklch(33% 0.035 262);
+
+    /* ---- Lines & text ---- */
+    --border: oklch(31% 0.03 262);
+    --border-strong: oklch(40% 0.035 262);
+    /* Contrast: on the 17%-lightness backdrop these land at roughly
+       15:1 (text), 10:1 (muted) and 6.7:1 (faint) — WCAG AAA for body copy
+       and AA even for the smallest meta labels, with headroom to spare for
+       the patterned background behind them. */
+    --text: oklch(94% 0.012 262);
+    --text-muted: oklch(80% 0.02 262);
+    --text-faint: oklch(66% 0.025 262);
+
+    /* ---- Accent: primary cyan/teal (lineage of #64ffda) ---- */
+    --accent: oklch(88% 0.16 176);
+    --accent-strong: oklch(78% 0.16 176);
+    --accent-soft: oklch(88% 0.16 176 / 0.12);
+    --accent-glow: oklch(88% 0.16 176 / 0.38);
+    --accent-line: oklch(88% 0.16 176 / 0.22);
+
+    /* ---- Accent: secondary violet (gradient partner) ---- */
+    --accent-2: oklch(70% 0.17 288);
+    --accent-2-soft: oklch(70% 0.17 288 / 0.14);
+    --accent-2-line: oklch(70% 0.17 288 / 0.22);
+
+    /* ---- Radii ---- */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.875rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.75rem;
+    --radius-pill: 999px;
+
+    /* ---- Elevation (layered depth / glass) ---- */
+    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3);
+    --shadow-md: 0 12px 40px oklch(0% 0 0 / 0.4);
+    --shadow-lg: 0 32px 80px oklch(0% 0 0 / 0.5);
+    --shadow-glow: 0 0 0 1px var(--accent-line), 0 24px 60px oklch(0% 0 0 / 0.5);
+
+    /* ---- Fluid type scale ---- */
+    --fs--1: clamp(0.8rem, 0.77rem + 0.12vw, 0.88rem);
+    --fs-0: clamp(0.95rem, 0.9rem + 0.3vw, 1.08rem);
+    --fs-1: clamp(1.1rem, 1rem + 0.55vw, 1.35rem);
+    --fs-2: clamp(1.4rem, 1.15rem + 1.1vw, 2rem);
+    --fs-3: clamp(1.9rem, 1.45rem + 2.2vw, 3rem);
+    --fs-4: clamp(2.6rem, 1.8rem + 3.8vw, 4.6rem);
+    --fs-5: clamp(3.2rem, 1.9rem + 6.4vw, 7rem);
+
+    /* ---- Spacing (8pt rhythm) ---- */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-section: clamp(4.5rem, 9vw, 9rem);
+
+    /* ---- Layout ---- */
+    --container: 76rem;
+    --grid-size: 56px;
+
+    /* ---- Motion (custom curves, not the weak CSS defaults) ---- */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+    --dur-fast: 120ms;
+    --dur-base: 200ms;
+    --dur-slow: 360ms;
+    --dur-slower: 600ms;
+
+    /* ---- z-index scale ---- */
+    --z-bg: 0;
+    --z-content: 10;
+    --z-chrome: 50;
+    --z-overlay: 100;
+  }
+
+  /* P3 upgrade: only when the display can represent the wider gamut. */
+  @supports (color: color(display-p3 1 1 1)) {
+    :root {
+      --accent: color(display-p3 0.42 1 0.85);
+      --accent-strong: color(display-p3 0.2 0.9 0.72);
+      --accent-glow: color(display-p3 0.42 1 0.85 / 0.38);
+      --accent-line: color(display-p3 0.42 1 0.85 / 0.22);
+      --accent-2: color(display-p3 0.58 0.5 1);
+    }
+  }
+}
+
+/*
+ * Expose tokens to Tailwind v4 so utilities like `bg-surface`, `text-accent`,
+ * `border-border-strong`, `shadow-glow`, `rounded-lg`, `ease-out` work.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border-soft: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-line: var(--accent-line);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
+  --color-accent-2-line: var(--accent-2-line);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+  --ease-drawer: var(--ease-drawer);
+  --ease-spring: var(--ease-spring);
+
+  --fs--1: var(--fs--1);
+  --fs-0: var(--fs-0);
+  --fs-1: var(--fs-1);
+  --fs-2: var(--fs-2);
+  --fs-3: var(--fs-3);
+  --fs-4: var(--fs-4);
+  --fs-5: var(--fs-5);
+}

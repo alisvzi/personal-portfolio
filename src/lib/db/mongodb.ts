@@ -1,23 +1,28 @@
-import mongoose, { Connection } from "mongoose";
+import mongoose, { type Connection } from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+import { mongoUri } from "@/lib/env";
 
-if (!MONGODB_URI) {
-  throw new Error(
-    "❌ Please define the MONGODB_URI environment variable in .env.local"
-  );
-}
+/**
+ * Cached Mongo connection.
+ *
+ * Serverless runtimes reuse one process across many invocations, so the
+ * connection promise is stashed on `globalThis` to survive hot reloads in
+ * development and to avoid opening a new pool per invocation in production.
+ */
 
 interface MongooseCache {
   conn: Connection | null;
   promise: Promise<Connection> | null;
 }
 
-let cached: MongooseCache = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+declare global {
+  var __mongooseCache: MongooseCache | undefined;
 }
+
+const cached: MongooseCache = (globalThis.__mongooseCache ??= {
+  conn: null,
+  promise: null,
+});
 
 export async function connectDB(): Promise<Connection> {
   if (cached.conn) {
@@ -25,40 +30,47 @@ export async function connectDB(): Promise<Connection> {
   }
 
   if (!cached.promise) {
-    mongoose.set("strictQuery", false);
+    mongoose.set("strictQuery", true);
 
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      family: 4,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-      // console.log("🚀 MongoDB Connected:", mongoose.connection.name);
-      return mongoose.connection;
-    });
+    cached.promise = mongoose
+      .connect(mongoUri(), {
+        bufferCommands: false,
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        family: 4,
+      })
+      .then((instance) => instance.connection);
   }
 
   try {
     cached.conn = await cached.promise;
-  } catch (err) {
+  } catch (error) {
     cached.promise = null;
-    console.error("❌ MongoDB Connection Error:", err);
-    throw err;
+    console.error("[db] MongoDB connection failed:", error);
+    throw error;
   }
 
   return cached.conn;
 }
 
-export const dbHealth = () => {
-  const connection = mongoose.connection;
-  return {
-    connected: connection.readyState === 1,
-    readyState: connection.readyState,
-    name: connection.name,
-    host: connection.host,
-    port: connection.port,
-  };
-};
+/**
+ * Lightweight readiness probe.
+ *
+ * Deliberately returns no host, port or database name: this used to be exposed
+ * verbatim through the public `/api` health endpoint.
+ */
+export function dbHealth(): { connected: boolean } {
+  return { connected: mongoose.connection.readyState === 1 };
+}
+
+/**
+ * Guards route parameters that are used as document ids.
+ *
+ * A malformed id would otherwise reach Mongoose as a cast error, which the old
+ * handlers surfaced to the caller as a 500 with the internal message attached.
+ */
+export function isValidObjectId(id: string | undefined): boolean {
+  return typeof id === "string" && mongoose.isValidObjectId(id);
+}
+

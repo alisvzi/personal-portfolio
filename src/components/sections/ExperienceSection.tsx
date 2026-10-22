@@ -1,210 +1,148 @@
 "use client";
+
+import { useRef } from "react";
 import {
-  AnimatedContainer,
-  AnimatedItem,
-} from "@/components/ui/AnimatedContainer";
-import { EXPERIENCE_DATA } from "@/lib/constants";
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { interpolate } from "@/i18n/format";
 import { cn } from "@/lib/utils";
-import { Experience } from "@/types";
-import { motion } from "framer-motion";
+import type { Experience } from "@/types";
+import { SectionHeading } from "./SectionHeading";
 
 interface ExperienceSectionProps {
-  experience?: Experience[];
+  experiences: Experience[];
+  labels: Dictionary["experience"];
   className?: string;
 }
 
+/**
+ * Experience chapter — a vertical timeline of interactive 3D-tilt cards.
+ *
+ * The connecting rail is a cyan→violet gradient; the motion lives on the cards,
+ * never the text. Generous vertical rhythm and `text-safe` keep long role names
+ * and descriptions inside their boxes at any width.
+ */
 export function ExperienceSection({
-  experience = EXPERIENCE_DATA,
+  experiences,
+  labels,
   className,
 }: ExperienceSectionProps) {
   return (
     <section
       id="experience"
-      className={cn(
-        "min-h-screen py-20 flex items-center",
-        "relative overflow-hidden",
-        className
-      )}
+      className={cn("relative flex min-h-full items-center", className)}
     >
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none"></div>
+      <div className="chapter-shell">
+        <div className="mx-auto max-w-4xl">
+          <SectionHeading index="02" title={labels.heading} className="mb-14" />
 
-      <div className="max-w-6xl w-full mx-auto px-4 relative z-10">
-        <AnimatedContainer
-          variant="slideRight"
-          viewport={{ once: true, amount: 0.3 }}
-          className="space-y-12 s"
-        >
-          {/* Section Title */}
-          <AnimatedItem>
-            <div className="flex items-center mb-12">
-              <motion.span
-                className="text-[#64ffda] font-mono text-lg mr-4"
-                initial={{ opacity: 0, scale: 0 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                viewport={{ once: true }}
-              >
-                02.
-              </motion.span>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#ccd6f6]">
-                Where I&apos;ve Worked
-              </h2>
-              <motion.div
-                className="flex-1 h-px bg-gradient-to-r from-[#233554] to-transparent ml-8"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                viewport={{ once: true }}
-              />
-            </div>
-          </AnimatedItem>
-
-          {/* Experience Timeline */}
-          <div className="space-y-12">
-            {experience.map((job, index) => (
-              <AnimatedItem
-                key={index}
-                variant="fadeSlideUp"
-                className="relative"
-              >
-                <motion.div
-                  className="relative"
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.2, duration: 0.8 }}
-                  viewport={{ once: true, amount: 0.3 }}
-                >
-                  {/* Timeline Line */}
-                  {index < experience.length - 1 && (
-                    <motion.div
-                      className="absolute left-0 top-16 w-px h-24 bg-gradient-to-b from-[#64ffda]/50 to-[#64ffda]/20 hidden md:block"
-                      initial={{ scaleY: 0 }}
-                      whileInView={{ scaleY: 1 }}
-                      transition={{ delay: index * 0.2 + 0.5, duration: 0.6 }}
-                      viewport={{ once: true }}
-                    />
-                  )}
-
-                  {/* Timeline Dot */}
-                  <motion.div
-                    className="absolute left-0 top-6 w-3 h-3 bg-[#64ffda] rounded-full border-4 border-[#0a192f] hidden md:block"
-                    initial={{ scale: 0 }}
-                    whileInView={{ scale: 1 }}
-                    transition={{ delay: index * 0.2 + 0.3, duration: 0.4 }}
-                    viewport={{ once: true }}
-                    whileHover={{ scale: 1.5 }}
-                  />
-
-                  {/* Job Content */}
-                  <div className="md:ml-8 space-y-4">
-                    {/* Job Header */}
-                    <div className="space-y-2">
-                      <div className="flex flex-col md:flex-row md:items-center gap-2">
-                        <h3 className="text-xl md:text-2xl font-semibold text-[#ccd6f6]">
-                          {job.title}
-                        </h3>
-                        <motion.span
-                          className="text-[#64ffda] font-mono text-base md:text-lg"
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          @ {job.company}
-                        </motion.span>
-                      </div>
-                      <p className="text-[#8892b0] font-mono text-sm">
-                        {job.period}
-                      </p>
-                    </div>
-
-                    {/* Job Description */}
-                    <motion.div
-                      className="bg-[#112240]/50 backdrop-blur-sm p-6 rounded-lg border border-[#233554]/50"
-                      whileHover={{
-                        backgroundColor: "rgba(17, 34, 64, 0.8)",
-                        borderColor: "rgba(100, 255, 218, 0.2)",
-                      }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <p className="text-[#8892b0] leading-relaxed text-base">
-                        {job.description}
-                      </p>
-                    </motion.div>
-
-                    {/* Technologies */}
-                    <motion.div
-                      className="flex flex-wrap gap-2"
-                      variants={{
-                        hidden: {},
-                        visible: {
-                          transition: {
-                            staggerChildren: 0.1,
-                            delayChildren: index * 0.2 + 0.6,
-                          },
-                        },
-                      }}
-                      initial="hidden"
-                      whileInView="visible"
-                      viewport={{ once: true }}
-                    >
-                      {job.technologies.map((tech) => (
-                        <motion.span
-                          key={tech}
-                          className="px-3 py-1 bg-[#64ffda]/10 text-[#64ffda] text-sm font-mono rounded-full border border-[#64ffda]/20 hover:bg-[#64ffda]/20 transition-colors cursor-default"
-                          variants={{
-                            hidden: { opacity: 0, scale: 0.8 },
-                            visible: {
-                              opacity: 1,
-                              scale: 1,
-                              transition: {
-                                duration: 0.4,
-                                ease: "easeOut",
-                              },
-                            },
-                          }}
-                          whileHover={{
-                            scale: 1.1,
-                            backgroundColor: "rgba(100, 255, 218, 0.2)",
-                          }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          {tech}
-                        </motion.span>
-                      ))}
-                    </motion.div>
-
-                    {/* Achievements/Highlights (if any) */}
-                    <motion.div
-                      className="pt-2"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      transition={{ delay: index * 0.2 + 0.8, duration: 0.6 }}
-                      viewport={{ once: true }}
-                    >
-                      <div className="flex items-start space-x-2">
-                        <motion.div
-                          className="w-1 h-1 bg-[#64ffda] rounded-full mt-3 flex-shrink-0"
-                          animate={{
-                            scale: [1, 1.5, 1],
-                            opacity: [0.5, 1, 0.5],
-                          }}
-                          transition={{
-                            duration: 2,
-                            ease: "easeInOut",
-                          }}
-                        />
-                        <p className="text-[#8892b0] text-sm italic">
-                          Key contributions and achievements during this role
-                        </p>
-                      </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
-              </AnimatedItem>
-            ))}
-          </div>
-        </AnimatedContainer>
+          {experiences.length === 0 ? (
+            <p className="py-12 text-center text-text-muted">{labels.empty}</p>
+          ) : (
+            <ol className="relative space-y-10 before:absolute before:start-0 before:top-2 before:h-[calc(100%-1rem)] before:w-px before:-translate-x-1/2 before:bg-gradient-to-b before:from-accent-line before:via-accent-2-line before:to-transparent">
+              {experiences.map((job, index) => (
+                <li key={job.id} className="relative ps-10 md:ps-12">
+                  <span
+                    aria-hidden="true"
+                    className="absolute start-0 top-6 z-10 grid h-4 w-4 -translate-x-1/2 place-items-center rounded-full border-2 border-accent bg-bg"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  </span>
+                  <ExperienceNode job={job} labels={labels} index={index} />
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+function ExperienceNode({
+  job,
+  labels,
+  index,
+}: {
+  job: Experience;
+  labels: Dictionary["experience"];
+  index: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [5, -5]), {
+    stiffness: 150,
+    damping: 15,
+  });
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-7, 7]), {
+    stiffness: 150,
+    damping: 15,
+  });
+
+  const handleMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    mx.set((event.clientX - rect.left) / rect.width - 0.5);
+    my.set((event.clientY - rect.top) / rect.height - 0.5);
+  };
+  const reset = () => {
+    mx.set(0);
+    my.set(0);
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onPointerMove={handleMove}
+      onPointerLeave={reset}
+      className="group min-w-0 [perspective:1200px]"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.25 }}
+      transition={{ duration: 0.45, delay: index * 0.05, ease: [0.23, 1, 0.32, 1] }}
+    >
+      <motion.div
+        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+        className="rounded-xl border border-border-soft bg-surface/60 p-6 backdrop-blur-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-accent/30 hover:shadow-glow sm:p-7"
+      >
+        <div className="flex flex-col gap-1.5 md:flex-row md:items-baseline md:justify-between md:gap-6">
+          <h3
+            className="text-safe font-semibold text-text transition-colors duration-200 group-hover:text-accent"
+            style={{ fontSize: "var(--fs-1)", lineHeight: 1.2 }}
+          >
+            {job.title}
+          </h3>
+          <span className="shrink-0 font-mono text-sm text-accent">
+            {interpolate(labels.at, { company: job.company })}
+          </span>
+        </div>
+
+        <p className="mt-1.5 font-mono text-sm text-text-faint">{job.period}</p>
+
+        <p className="text-safe mt-4 max-w-prose leading-relaxed text-text-muted">
+          {job.description}
+        </p>
+
+        {job.technologies.length > 0 && (
+          <ul className="mt-5 flex flex-wrap gap-2">
+            {job.technologies.map((tech) => (
+              <li
+                key={tech}
+                className="rounded-full border border-accent/20 bg-accent-soft px-3 py-1 font-mono text-xs text-accent transition-colors duration-200 hover:bg-accent/20"
+              >
+                {tech}
+              </li>
+            ))}
+          </ul>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }
 

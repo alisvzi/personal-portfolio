@@ -1,257 +1,387 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 
+import { actionError, actionOk, type ActionErrorKey, type ActionResult } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
 import { connectDB } from "@/lib/db/mongodb";
+import { blobReadWriteToken } from "@/lib/env";
 import ProjectModel from "@/lib/models/Project";
-import { generateThumbHash } from "@/lib/utils/image/thumbhash";
-import { put, del } from "@vercel/blob";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { saveImageFile, deleteImageFile } from "@/lib/utils/image/upload";
-import { createPlaceholderImage } from "@/lib/utils/image/placeholder";
+import { isValidSlug, slugify } from "@/lib/slug";
+import {
+  ImageValidationError,
+  deleteImage,
+  saveGeneratedImage,
+  saveImage,
+} from "@/lib/storage";
+import { createPlaceholderBuffer } from "@/lib/utils/image/placeholder";
+import {
+  LIMITS,
+  formCheckbox,
+  formNumber,
+  formString,
+  isSafeHttpUrl,
+} from "@/lib/validation";
+import type { ProjectImage } from "@/types";
 
-// Project type definition
-type Project = {
-  id?: string;
-  title: string;
-  titleFa?: string;
-  description: string;
-  descriptionFa?: string;
-  imageUrl: string;
-  projectUrl?: string;
-  githubUrl?: string;
-  technologies: string;
-  featured: boolean;
-  order: number;
-};
+/**
+ * Project mutations.
+ *
+ * Every exported function starts by calling `requireAdmin()`. Server Actions
+ * are public HTTP endpoints: hiding the admin UI does not protect them, and a
+ * `proxy.ts` matcher must not be the only gate because a matcher can silently
+ * stop covering a route when files move.
+ *
+ * Validation failures are returned as dictionary keys (`admin.errors.*`) so the
+ * panel renders them in the admin's current language.
+ */
 
-// Create a new project
-export async function createProject(formData: FormData) {
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const file = formData.get("imageUrl") as File | null;
+function revalidatePublicPages(): void {
+  // Revalidates every route underneath the root layout, covering both locales
+  // and every project detail page.
+  revalidatePath("/", "layout");
+}
 
-  if (!title || !description || !file) {
-    return {
-      success: false,
-      error: "Title, description and image URL are required",
-    };
+/** Rejects anything that is not a real ObjectId before it reaches Mongoose. */
+function isRealId(id: string | undefined): id is string {
+  return Boolean(id) && mongoose.isValidObjectId(id);
+}
+
+function readImageField(form: FormData): File | null {
+  const value = form.get("imageUrl");
+  return value instanceof File && value.size > 0 ? value : null;
+}
+
+/** Gallery uploads, capped so a single save cannot fan out into dozens of writes. */
+function readGalleryFiles(form: FormData): File[] {
+  return form
+    .getAll("gallery")
+    .filter((value): value is File => value instanceof File && value.size > 0)
+    .slice(0, LIMITS.gallery);
+}
+
+/** URLs of existing gallery images the admin ticked for removal. */
+function readRemovedGalleryUrls(form: FormData): Set<string> {
+  return new Set(
+    form
+      .getAll("galleryRemove")
+      .filter((value): value is string => typeof value === "string" && value.length > 0),
+  );
+}
+
+function readGallery(value: unknown): ProjectImage[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const item = entry as Record<string, unknown>;
+    const url = typeof item.url === "string" ? item.url.trim() : "";
+    if (!url) return [];
+    return [
+      {
+        url,
+        placeholder:
+          typeof item.placeholder === "string" ? item.placeholder : undefined,
+      },
+    ];
+  });
+}
+
+/**
+ * A year label: `2024`, or a range like `2023–2024`.
+ *
+ * Kept deliberately loose — this is a display label, not a date column — but
+ * strict enough that a stray sentence cannot end up in the `<time>` element.
+ */
+const YEAR_PATTERN = /^\d{4}(?:\s*[-–—]\s*\d{4})?$/;
+
+function validateProjectFields(form: FormData): ActionErrorKey | null {
+  const title = formString(form, "title");
+  const description = formString(form, "description");
+
+  if (!title) return "titleRequired";
+  if (title.length > LIMITS.title) return "titleTooLong";
+
+  if (!description) return "descriptionRequired";
+  if (description.length > LIMITS.description) return "descriptionTooLong";
+
+  if (!formString(form, "technologies")) return "technologiesRequired";
+
+  const slug = formString(form, "slug");
+  if (slug && !isValidSlug(slug)) return "slugInvalid";
+
+  const year = formString(form, "year");
+  if (year && !YEAR_PATTERN.test(year)) return "yearInvalid";
+
+  const longDescription = formString(form, "longDescription");
+  if (longDescription && longDescription.length > LIMITS.longDescription) {
+    return "descriptionTooLong";
   }
 
-  const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
-  let imageUrl: string = "";
-  let thumbhash: string | null = null;
+  const longDescriptionFa = formString(form, "longDescriptionFa");
+  if (longDescriptionFa && longDescriptionFa.length > LIMITS.longDescription) {
+    return "descriptionTooLong";
+  }
 
-  if (file) {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const tmpDir = os.tmpdir();
-    const ext = path.extname(file.name) || ".jpg";
-    const tmpFile = path.join(tmpDir, `upload_${Date.now()}${ext}`);
+  const role = formString(form, "role");
+  if (role && role.length > LIMITS.role) return "descriptionTooLong";
+
+  const client = formString(form, "client");
+  if (client && client.length > LIMITS.client) return "descriptionTooLong";
+
+  const projectUrl = formString(form, "projectUrl");
+  if (projectUrl && !isSafeHttpUrl(projectUrl)) return "projectUrlInvalid";
+
+  const githubUrl = formString(form, "githubUrl");
+  if (githubUrl && !isSafeHttpUrl(githubUrl)) return "githubUrlInvalid";
+
+  return null;
+}
+
+function buildProjectData(form: FormData) {
+  return {
+    title: formString(form, "title")!,
+    titleFa: formString(form, "titleFa"),
+    description: formString(form, "description")!,
+    descriptionFa: formString(form, "descriptionFa"),
+    longDescription: formString(form, "longDescription"),
+    longDescriptionFa: formString(form, "longDescriptionFa"),
+    role: formString(form, "role"),
+    year: formString(form, "year"),
+    client: formString(form, "client"),
+    projectUrl: formString(form, "projectUrl"),
+    githubUrl: formString(form, "githubUrl"),
+    technologies: formString(form, "technologies")!,
+    featured: formCheckbox(form, "featured"),
+    order: formNumber(form, "order", 0),
+  };
+}
+
+/**
+ * Resolves a unique slug for a project.
+ *
+ * The submitted value wins when it is valid; otherwise one is derived from the
+ * title. A suffix is appended only on an actual collision, so the common case
+ * produces exactly the URL the owner expects.
+ */
+async function resolveSlug(
+  submitted: string | undefined,
+  title: string,
+  excludeId?: string,
+): Promise<string> {
+  const desired =
+    (submitted && slugify(submitted)) ||
+    slugify(title) ||
+    `project-${Date.now().toString(36)}`;
+
+  let candidate = desired;
+  let counter = 2;
+
+  // Bounded: 50 attempts is far beyond any realistic number of collisions and
+  // guarantees the loop cannot spin forever on a corrupted collection.
+  while (counter < 50) {
+    const clash = await ProjectModel.exists({
+      slug: candidate,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    });
+    if (!clash) break;
+    candidate = `${desired}-${counter}`;
+    counter += 1;
+  }
+
+  return candidate;
+}
+
+export async function createProject(form: FormData): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+
+    const error = validateProjectFields(form);
+    if (error) return { success: false, error };
+
+    await connectDB();
+
+    const token = blobReadWriteToken();
+    const slug = await resolveSlug(formString(form, "slug"), formString(form, "title")!);
+
+    const file = readImageField(form);
+    const image = file
+      ? await saveImage(file, token)
+      : await saveGeneratedImage(
+          await createPlaceholderBuffer({ text: formString(form, "title") ?? "" }),
+          token,
+        );
+
+    const gallery: ProjectImage[] = [];
+    const uploadedUrls: string[] = [image.url];
+
+    for (const galleryFile of readGalleryFiles(form)) {
+      const saved = await saveImage(galleryFile, token);
+      gallery.push({ url: saved.url, placeholder: saved.placeholder ?? undefined });
+      uploadedUrls.push(saved.url);
+    }
+
     try {
-      await fs.promises.writeFile(tmpFile, buffer);
-      thumbhash = await generateThumbHash(tmpFile);
-    } catch {}
-    await fs.promises.unlink(tmpFile).catch(() => {});
-
-    if (isProd) {
-      if (!process.env.BLOB_READ_WRITE_TOKEN) {
-        return { success: false, error: "Storage is not configured (BLOB_READ_WRITE_TOKEN missing)" };
+      await ProjectModel.create({
+        ...buildProjectData(form),
+        slug,
+        imageUrl: image.url,
+        imagePlaceholderUrl: image.placeholder ?? undefined,
+        gallery,
+      });
+    } catch (error) {
+      // The uploads already succeeded, so a failed insert would otherwise leave
+      // orphaned objects in the blob store forever. Best-effort cleanup: the
+      // original database error is the one worth surfacing.
+      for (const url of uploadedUrls) {
+        try {
+          await deleteImage(url, token);
+        } catch (cleanupError) {
+          console.error("[actions] createProject: image cleanup failed:", cleanupError);
+        }
       }
-      try {
-        const blob = await put(file.name, buffer, {
-          access: "public",
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-        } as any);
-        imageUrl = (blob as any).url || "";
-      } catch (e: any) {
-        return { success: false, error: "Image upload failed" };
-      }
-    } else {
-      try {
-        const saved = await saveImageFile(file, "projects");
-        imageUrl = saved.publicUrl;
-      } catch (e) {
-        return { success: false, error: "Local image save failed" };
-      }
+      throw error;
     }
-  } else {
-    const ph = await createPlaceholderImage({ text: title || "Project" });
-    imageUrl = ph.publicUrl;
-    thumbhash = await generateThumbHash(ph.filePath);
+
+    revalidatePublicPages();
+    return actionOk();
+  } catch (error) {
+    if (error instanceof ImageValidationError) {
+      return { success: false, error: error.key, values: error.values };
+    }
+    console.error("[actions] createProject failed:", error);
+    return actionError(error, "saveFailed");
   }
+}
 
+export async function updateProject(form: FormData): Promise<ActionResult> {
   try {
-    await connectDB();
+    await requireAdmin();
 
-    const project = {
+    const id = formString(form, "id");
+    if (!isRealId(id)) return { success: false, error: "idRequired" };
+
+    const error = validateProjectFields(form);
+    if (error) return { success: false, error };
+
+    await connectDB();
+    const existing = await ProjectModel.findById(id).exec();
+    if (!existing) return { success: false, error: "notFound" };
+
+    const token = blobReadWriteToken();
+    const title = formString(form, "title")!;
+    const slug = await resolveSlug(
+      formString(form, "slug") || existing.slug || undefined,
       title,
-      titleFa: formData.get("titleFa") as string,
-      description,
-      descriptionFa: formData.get("descriptionFa") as string,
-      imageUrl,
-      projectUrl: formData.get("projectUrl") as string,
-      githubUrl: formData.get("githubUrl") as string,
-      technologies: formData.get("technologies") as string,
-      featured: formData.get("featured") === "on", // Checkbox value is "on" when checked
-      order: parseInt(formData.get("order") as string) || 0,
-      imagePlaceholderUrl: thumbhash || "",
-    };
+      id,
+    );
 
-    await ProjectModel.create(project);
+    const update: Record<string, unknown> = { ...buildProjectData(form), slug };
 
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
-  } catch (error) {
-    console.error("Error creating project:", error);
-    return { success: false, error: (error as Error).message };
-  }
-}
+    /*
+     * Gallery capacity is checked *before* any upload happens. The cover is
+     * uploaded first, so validating afterwards would mean a rejected save still
+     * left an orphaned blob behind with nothing referencing it.
+     */
+    const removed = readRemovedGalleryUrls(form);
+    const keptGallery = readGallery(existing.gallery).filter(
+      (image) => !removed.has(image.url),
+    );
+    const galleryFiles = readGalleryFiles(form);
+    const remainingSlots = Math.max(0, LIMITS.gallery - keptGallery.length);
 
-// Update an existing project
-export async function updateProject(formData: FormData) {
-  const id = formData.get("id") as string;
-  if (!id) {
-    return { success: false, error: "Project ID is required" };
-  }
-  
-  // Validate required fields
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const file = formData.get("imageUrl") as File | null;
-  
-  if (!title || !description) {
-    return {
-      success: false,
-      error: "Title and description are required",
-    };
-  }
-  
-  try {
-    await connectDB();
-  
-    let imageUrl: string | undefined;
-    let thumbhash: string | undefined;
-    if (file && (file as any).size) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const tmpDir = os.tmpdir();
-      const ext = path.extname(file.name) || ".jpg";
-      const tmpFile = path.join(tmpDir, `upload_${Date.now()}${ext}`);
+    if (galleryFiles.length > remainingSlots) {
+      return {
+        success: false,
+        error: "galleryTooMany",
+        values: { max: LIMITS.gallery },
+      };
+    }
+
+    // --- Cover -------------------------------------------------------------
+    const file = readImageField(form);
+    let replacedImage: string | undefined;
+
+    if (file) {
+      const image = await saveImage(file, token);
+      replacedImage = existing.imageUrl;
+      update.imageUrl = image.url;
+      update.imagePlaceholderUrl = image.placeholder ?? undefined;
+    }
+
+    // --- Gallery -----------------------------------------------------------
+    const newGalleryImages: ProjectImage[] = [];
+
+    for (const galleryFile of galleryFiles) {
+      const saved = await saveImage(galleryFile, token);
+      newGalleryImages.push({
+        url: saved.url,
+        placeholder: saved.placeholder ?? undefined,
+      });
+    }
+
+    const nextGallery = [...keptGallery, ...newGalleryImages];
+    update.gallery = nextGallery;
+
+    await ProjectModel.findByIdAndUpdate(id, update, { runValidators: true }).exec();
+
+    // Objects are only removed once the document actually points elsewhere.
+    // Deleting first would leave the project referencing files that no longer
+    // exist if the update then failed.
+    const orphaned = [
+      ...(replacedImage ? [replacedImage] : []),
+      ...Array.from(removed),
+    ];
+
+    for (const url of orphaned) {
       try {
-        await fs.promises.writeFile(tmpFile, buffer);
-        const th = await generateThumbHash(tmpFile);
-        thumbhash = th || undefined;
-      } catch {}
-      await fs.promises.unlink(tmpFile).catch(() => {});
-
-      const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
-      if (isProd) {
-        if (!process.env.BLOB_READ_WRITE_TOKEN) {
-          return { success: false, error: "Storage is not configured (BLOB_READ_WRITE_TOKEN missing)" };
-        }
-        try {
-          const blob = await put(file.name, buffer, {
-            access: "public",
-            token: process.env.BLOB_READ_WRITE_TOKEN,
-          } as any);
-          imageUrl = (blob as any).url || undefined;
-        } catch {
-          return { success: false, error: "Image upload failed" };
-        }
-      } else {
-        try {
-          const saved = await saveImageFile(file, "projects");
-          imageUrl = saved.publicUrl;
-        } catch {
-          return { success: false, error: "Local image save failed" };
-        }
+        await deleteImage(url, token);
+      } catch (cleanupError) {
+        console.error("[actions] updateProject: image cleanup failed:", cleanupError);
       }
     }
 
-    const projectData = {
-      title,
-      titleFa: formData.get("titleFa") as string,
-      description,
-      descriptionFa: formData.get("descriptionFa") as string,
-      ...(imageUrl ? { imageUrl } : {}),
-      ...(thumbhash ? { imagePlaceholderUrl: thumbhash } : {}),
-      projectUrl: formData.get("projectUrl") as string,
-      githubUrl: formData.get("githubUrl") as string,
-      technologies: formData.get("technologies") as string,
-      featured: formData.get("featured") === "on", // Checkbox value is "on" when checked
-      order: parseInt(formData.get("order") as string) || 0,
-    };
-
-    await ProjectModel.findByIdAndUpdate(id, projectData, { new: true });
-
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
+    revalidatePublicPages();
+    return actionOk();
   } catch (error) {
-    console.error("Error updating project:", error);
-    return { success: false, error: (error as Error).message };
+    if (error instanceof ImageValidationError) {
+      return { success: false, error: error.key, values: error.values };
+    }
+    console.error("[actions] updateProject failed:", error);
+    return actionError(error, "saveFailed");
   }
 }
 
-// Delete a project
-export async function deleteProject(formData: FormData) {
-  const id = formData.get("id") as string;
-
-  if (!id) {
-    return { success: false, error: "Project ID is required" };
-  }
-
+export async function deleteProject(form: FormData): Promise<ActionResult> {
   try {
-    await connectDB();
-    const existing = await ProjectModel.findById(id);
-    if (!existing) {
-      return { success: false, error: "Project not found" };
-    }
+    await requireAdmin();
 
-    const imageUrl = existing.imageUrl as string;
-    const isProd = !!process.env.VERCEL || process.env.NODE_ENV === "production";
-    if (imageUrl) {
-      // Delete from Blob in production
-      if (isProd && imageUrl.includes("blob.vercel-storage.com")) {
-        if (!process.env.BLOB_READ_WRITE_TOKEN) {
-          // Continue deletion of DB even if storage token missing
-        } else {
-          try {
-            await del(imageUrl, { token: process.env.BLOB_READ_WRITE_TOKEN } as any);
-          } catch (e) {
-            // swallow, proceed with DB deletion
-          }
-        }
-      } else {
-        // Delete local file if exists
-        try {
-          await deleteImageFile(imageUrl);
-        } catch {}
+    const id = formString(form, "id");
+    if (!isRealId(id)) return { success: false, error: "idRequired" };
+
+    await connectDB();
+    const existing = await ProjectModel.findById(id).exec();
+    if (!existing) return { success: false, error: "notFound" };
+
+    const galleryUrls = readGallery(existing.gallery).map((image) => image.url);
+
+    // Row first, files second. If a blob delete then fails we are left with an
+    // orphaned object (invisible and harmless), whereas the reverse order would
+    // leave a live project pointing at an image that no longer exists.
+    await ProjectModel.findByIdAndDelete(id).exec();
+
+    const token = blobReadWriteToken();
+    for (const url of [existing.imageUrl, ...galleryUrls]) {
+      try {
+        await deleteImage(url, token);
+      } catch (cleanupError) {
+        console.error("[actions] deleteProject: image cleanup failed:", cleanupError);
       }
     }
 
-    await ProjectModel.findByIdAndDelete(id);
-
-    revalidatePath("/admin");
-    revalidatePath("/");
-    return { success: true };
+    revalidatePublicPages();
+    return actionOk();
   } catch (error) {
-    console.error("Error deleting project:", error);
-    return { success: false, error: (error as Error).message };
-  }
-}
-
-// Get all projects
-export async function getProjects() {
-  try {
-    await connectDB();
-    const projects = await ProjectModel.find({}).sort({ order: 1 }).lean();
-
-    return projects;
-  } catch (error) {
-    console.error("Error fetching projects:", error);
-    return [];
+    console.error("[actions] deleteProject failed:", error);
+    return actionError(error, "deleteFailed");
   }
 }

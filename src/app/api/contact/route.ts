@@ -1,50 +1,93 @@
-import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/mongodb";
-import Message from "@/lib/models/Message";
+import type { NextRequest } from "next/server";
 
-// GET all messages
+import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
+import { isSameOriginRequest } from "@/lib/csrf";
+import { getMessages } from "@/lib/data";
+import { connectDB } from "@/lib/db/mongodb";
+import MessageModel from "@/lib/models/Message";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
+import { LIMITS, isEmail, isNonEmptyString } from "@/lib/validation";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/contact — inbox for the admin panel.
+ *
+ * Returns a bare array (the admin panel consumes it directly). This endpoint
+ * previously had no authorization at all, so every visitor's name, email and
+ * message body was readable by anyone who requested this URL.
+ */
 export async function GET() {
   try {
-    await connectDB();
-    const messages = await Message.find({}).sort({ createdAt: -1 }).lean();
-    const normalized = messages.map((m: any) => ({
-      id: m._id.toString(),
-      name: m.name,
-      email: m.email,
-      subject: m.subject ?? "",
-      message: m.message,
-      read: !!m.read,
-      createdAt: m.createdAt,
-    }));
-    return NextResponse.json(normalized, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: "Error fetching messages", error: error.message },
-      { status: 500 }
-    );
+    await requireAdmin();
+    return jsonOk(await getMessages());
+  } catch (error) {
+    return handleRouteError(error, "GET /api/contact");
   }
 }
 
-// POST a new message
-export async function POST(req: NextRequest) {
+/**
+ * POST /api/contact — public contact form submission.
+ *
+ * This is the only unauthenticated write in the application, so it carries the
+ * full public-endpoint guard set: same-origin check, per-IP rate limit, strict
+ * length and format validation, and an error body that never echoes internals.
+ */
+export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-    const body = await req.json();
-    const { name, email, subject, message } = body;
+    if (!isSameOriginRequest(request)) {
+      return jsonError("This request was blocked.", 403);
+    }
 
-    if (!name || !email || !message) {
-      return NextResponse.json(
-        { message: "Name, email, and message are required" },
-        { status: 400 }
+    const limit = rateLimit(clientKey(request.headers, "contact"), {
+      max: 5,
+      windowSeconds: 600,
+    });
+    if (!limit.allowed) {
+      return jsonError(
+        "Too many messages sent. Please try again later.",
+        429,
       );
     }
 
-    const newMsg = await Message.create({ name, email, subject, message });
-    return NextResponse.json({ id: newMsg._id.toString() }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: "Error creating message", error: error.message },
-      { status: 500 }
-    );
+    let payload: unknown;
+    try {
+      payload = await request.json();
+    } catch {
+      return jsonError("Invalid request body.", 400);
+    }
+
+    const body = (payload ?? {}) as Record<string, unknown>;
+
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const subject = typeof body.subject === "string" ? body.subject.trim() : "";
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+
+    if (!isNonEmptyString(name, LIMITS.name)) {
+      return jsonError("Please provide a valid name.", 400);
+    }
+    if (!isEmail(email)) {
+      return jsonError("Please provide a valid email address.", 400);
+    }
+    if (subject.length > LIMITS.subject) {
+      return jsonError("The subject is too long.", 400);
+    }
+    if (!isNonEmptyString(message, LIMITS.message)) {
+      return jsonError("Please provide a valid message.", 400);
+    }
+
+    await connectDB();
+    const created = await MessageModel.create({
+      name,
+      email,
+      subject: subject || undefined,
+      message,
+    });
+
+    return jsonOk({ id: String(created._id) }, 201);
+  } catch (error) {
+    return handleRouteError(error, "POST /api/contact");
   }
 }

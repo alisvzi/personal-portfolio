@@ -17,8 +17,8 @@ const sizeClasses = {
 };
 
 const colorClasses = {
-  primary: "border-[#64ffda] border-t-transparent",
-  secondary: "border-[#8892b0] border-t-transparent",
+  primary: "border-accent border-t-transparent",
+  secondary: "border-text-muted border-t-transparent",
   white: "border-white border-t-transparent",
 };
 
@@ -52,14 +52,14 @@ export function FullScreenLoading({
   message = "Loading...",
 }: FullScreenLoadingProps) {
   return (
-    <div className="min-h-screen bg-[#0a192f] flex flex-col items-center justify-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-bg">
       <LoadingSpinner size="xl" />
       {message && (
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="text-[#8892b0] mt-4 font-mono text-sm"
+          className="mt-4 font-mono text-sm text-text-muted"
         >
           {message}
         </motion.p>
@@ -86,7 +86,7 @@ export function LoadingDots({ className }: LoadingDotsProps) {
             delay: i * 0.2,
             ease: "easeInOut",
           }}
-          className="w-2 h-2 bg-[#64ffda] rounded-full"
+          className="h-2 w-2 rounded-full bg-accent"
         />
       ))}
     </div>

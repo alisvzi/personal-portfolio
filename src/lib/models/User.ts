@@ -1,16 +1,26 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 
-export interface IUser extends Document {
-  email: string;
-  password: string; // هش شده
-  role: "admin";
-}
+const userSchema = new Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+      maxlength: 254,
+    },
+    /** bcrypt hash. Plain-text passwords are never stored. */
+    password: { type: String, required: true },
+    role: { type: String, enum: ["admin"], default: "admin" },
+  },
+  { timestamps: true },
+);
 
-const UserSchema = new Schema<IUser>({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ["admin"], default: "admin" },
-});
+export type UserDoc = InferSchemaType<typeof userSchema>;
 
-export default mongoose.models.User ||
-  mongoose.model<IUser>("User", UserSchema);
+const UserModel =
+  (mongoose.models.User as Model<UserDoc>) ??
+  mongoose.model<UserDoc>("User", userSchema);
+
+export default UserModel;
