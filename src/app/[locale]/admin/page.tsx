@@ -46,6 +46,8 @@ export default async function AdminPage({
       labels={{
         title: dict.admin.title,
         logout: dict.admin.logout,
+        viewSite: dict.admin.viewSite,
+        language: dict.language,
         tabs: dict.admin.tabs,
         actions: dict.admin.actions,
         errors: dict.admin.errors,

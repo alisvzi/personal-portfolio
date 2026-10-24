@@ -73,6 +73,17 @@ export interface Experience {
   period: string;
   description: string;
   technologies: string[];
+
+  /**
+   * Persian variants. Optional because an entry may be written in one language
+   * only; the timeline falls back to the base field for anything left blank.
+   */
+  titleFa?: string;
+  companyFa?: string;
+  periodFa?: string;
+  descriptionFa?: string;
+  technologiesFa?: string[];
+
   order: number;
 }
 

@@ -323,3 +323,14 @@ html[data-locale="fa"] [class~="font-mono"] {
   font-family: "Geist Mono", var(--font-vazirmatn), ui-monospace,
     SFMono-Regular, Menlo, monospace;
 }
+
+/* ------------------------------------------------------------------
+ * Range inputs
+ *
+ * Only the dashboard uses one (the skill level slider), and an unstyled range
+ * paints its track in the browser's accent blue — a colour that appears
+ * nowhere else in the palette.
+ * ------------------------------------------------------------------ */
+input[type="range"] {
+  accent-color: var(--accent-strong);
+}

@@ -1,12 +1,11 @@
 "use client";
 
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { createSkill, deleteSkill, updateSkill } from "@/app/actions/skills";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { formatActionError, interpolate } from "@/i18n/format";
 import type { AdminLabels } from "./types";
+import { Alert, EmptyState, Panel, SectionHeader } from "./ui";
 
 type Skill = {
   id: string;
@@ -114,15 +114,12 @@ export default function SkillsPanel({ labels }: SkillsPanelProps) {
   };
 
   if (isLoading) {
-    return <p className="text-text-muted">{labels.skills.loading}</p>;
+    return <p className="text-sm text-text-muted">{labels.skills.loading}</p>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text">
-          {labels.skills.heading}
-        </h2>
+      <SectionHeader title={labels.skills.heading}>
         <Button
           onClick={() =>
             setEditingSkill({
@@ -135,10 +132,10 @@ export default function SkillsPanel({ labels }: SkillsPanelProps) {
             })
           }
         >
-          <Plus className="me-2 h-4 w-4" aria-hidden="true" />
+          <Plus aria-hidden="true" />
           {labels.actions.add}
         </Button>
-      </div>
+      </SectionHeader>
 
       {/*
         Makes the link between this tab and the public card explicit. The
@@ -146,18 +143,9 @@ export default function SkillsPanel({ labels }: SkillsPanelProps) {
         is a live render of this exact collection, so a skill added here appears
         there on the next request with no extra step.
       */}
-      <p className="rounded-md border border-accent/25 bg-accent-soft/40 p-3 text-sm leading-relaxed text-text-muted">
-        {labels.skills.toolboxHint}
-      </p>
+      <Alert tone="info">{labels.skills.toolboxHint}</Alert>
 
-      {formError && (
-        <div
-          role="alert"
-          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-        >
-          {formError}
-        </div>
-      )}
+      {formError && <Alert>{formError}</Alert>}
 
       {editingSkill && (
         <SkillForm
@@ -175,11 +163,9 @@ export default function SkillsPanel({ labels }: SkillsPanelProps) {
       )}
 
       {skills.length === 0 && !editingSkill && !formError ? (
-        <p className="py-8 text-center text-sm text-text-muted">
-          {labels.skills.empty}
-        </p>
+        <EmptyState icon={Wrench} title={labels.skills.empty} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {skills.map((skill) => (
             <SkillCard
               key={skill.id}
@@ -206,54 +192,59 @@ interface SkillCardProps {
 
 function SkillCard({ skill, labels, onEdit, onDelete, isDeleting }: SkillCardProps) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">{skill.name}</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(skill)}
-              aria-label={labels.actions.edit}
-            >
-              <Edit className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(skill.id)}
-              disabled={isDeleting}
-              aria-label={labels.actions.delete}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
+    <Panel className="flex flex-col justify-between gap-3 hover:border-border-strong">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-text">{skill.name}</p>
+          {skill.nameFa && (
+            <p className="mt-0.5 truncate text-xs text-accent-strong" dir="rtl">
+              {skill.nameFa}
+            </p>
+          )}
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {skill.category && <Badge>{skill.category}</Badge>}
-          <div className="flex items-center gap-2">
-            <div className="h-2.5 w-full rounded-full bg-surface-2">
-              <div
-                className="h-2.5 rounded-full bg-accent"
-                style={{ width: `${skill.level}%` }}
-              />
-            </div>
-            <span className="text-sm">{skill.level}%</span>
-          </div>
-          <div className="flex justify-between text-sm text-text-muted">
-            <span>
-              {labels.skills.icon}: {skill.icon}
-            </span>
-            <span>
-              {interpolate(labels.skills.orderLabel, { order: skill.order })}
-            </span>
-          </div>
+        <div className="flex shrink-0 gap-1.5">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => onEdit(skill)}
+            aria-label={labels.actions.edit}
+          >
+            <Edit aria-hidden="true" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => onDelete(skill.id)}
+            disabled={isDeleting}
+            aria-label={labels.actions.delete}
+            className="hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-200"
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="space-y-2.5">
+        {skill.category && <Badge variant="secondary">{skill.category}</Badge>}
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+            <div
+              className="h-full rounded-full bg-accent-strong"
+              style={{ width: `${skill.level}%` }}
+            />
+          </div>
+          <span className="font-mono text-xs text-text-muted">{skill.level}%</span>
+        </div>
+        <div className="flex justify-between gap-2 text-xs text-text-faint">
+          <span className="truncate">
+            {labels.skills.icon}: {skill.icon || "—"}
+          </span>
+          <span className="shrink-0">
+            {interpolate(labels.skills.orderLabel, { order: skill.order })}
+          </span>
+        </div>
+      </div>
+    </Panel>
   );
 }
 
@@ -302,22 +293,13 @@ function SkillForm({ skill, labels, onCancel, onSuccess }: SkillFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {skill.id ? labels.skills.editTitle : labels.skills.addTitle}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form action={handleSubmit} className="space-y-4">
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-            >
-              {error}
-            </div>
-          )}
+    <Panel className="border-accent-line/60 bg-surface/60">
+      <h3 className="text-base font-semibold text-text">
+        {skill.id ? labels.skills.editTitle : labels.skills.addTitle}
+      </h3>
+
+      <form action={handleSubmit} className="mt-5 space-y-5">
+        {error && <Alert>{error}</Alert>}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -398,7 +380,6 @@ function SkillForm({ skill, labels, onCancel, onSuccess }: SkillFormProps) {
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </Panel>
   );
 }

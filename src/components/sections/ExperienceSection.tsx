@@ -9,13 +9,15 @@ import {
 } from "framer-motion";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
-import { interpolate } from "@/i18n/format";
+import { interpolate, localized } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import type { Experience } from "@/types";
 import { SectionHeading } from "./SectionHeading";
 
 interface ExperienceSectionProps {
   experiences: Experience[];
+  locale: Locale;
   labels: Dictionary["experience"];
   className?: string;
 }
@@ -29,6 +31,7 @@ interface ExperienceSectionProps {
  */
 export function ExperienceSection({
   experiences,
+  locale,
   labels,
   className,
 }: ExperienceSectionProps) {
@@ -53,7 +56,12 @@ export function ExperienceSection({
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                   </span>
-                  <ExperienceNode job={job} labels={labels} index={index} />
+                  <ExperienceNode
+                    job={job}
+                    locale={locale}
+                    labels={labels}
+                    index={index}
+                  />
                 </li>
               ))}
             </ol>
@@ -66,13 +74,25 @@ export function ExperienceSection({
 
 function ExperienceNode({
   job,
+  locale,
   labels,
   index,
 }: {
   job: Experience;
+  locale: Locale;
   labels: Dictionary["experience"];
   index: number;
 }) {
+  const title = localized(locale, job.title, job.titleFa);
+  const company = localized(locale, job.company, job.companyFa);
+  const period = localized(locale, job.period, job.periodFa);
+  const description = localized(locale, job.description, job.descriptionFa);
+  // A Persian translation may translate the stack names too (`ری‌اکت`); when it
+  // does not, the English list is still the correct thing to show.
+  const technologies =
+    locale === "fa" && job.technologiesFa?.length
+      ? job.technologiesFa
+      : job.technologies;
   const ref = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -116,22 +136,22 @@ function ExperienceNode({
             className="text-safe min-w-0 font-semibold text-text transition-colors duration-200 group-hover:text-accent"
             style={{ fontSize: "var(--fs-1)", lineHeight: "var(--lh-title)" }}
           >
-            {job.title}
+            {title}
           </h3>
           <span className="shrink-0 font-mono text-sm text-accent">
-            {interpolate(labels.at, { company: job.company })}
+            {interpolate(labels.at, { company })}
           </span>
         </div>
 
-        <p className="mt-1.5 font-mono text-sm text-text-faint">{job.period}</p>
+        <p className="mt-1.5 font-mono text-sm text-text-faint">{period}</p>
 
         <p className="text-safe mt-4 max-w-prose leading-relaxed text-text-muted">
-          {job.description}
+          {description}
         </p>
 
-        {job.technologies.length > 0 && (
+        {technologies.length > 0 && (
           <ul className="mt-5 flex flex-wrap gap-2">
-            {job.technologies.map((tech) => (
+            {technologies.map((tech) => (
               <li
                 key={tech}
                 className="rounded-full border border-accent/20 bg-accent-soft px-3 py-1 font-mono text-xs text-accent transition-colors duration-200 hover:bg-accent/20"

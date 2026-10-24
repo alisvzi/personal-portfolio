@@ -6,9 +6,9 @@ import { useState, useTransition } from "react";
 import { updateAdminCredentials } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatActionError, interpolate } from "@/i18n/format";
 import type { AdminLabels } from "./types";
+import { Alert, Field, Panel, SectionHeader } from "./ui";
 
 /** Kept in step with the server action; the server is still the authority. */
 const MIN_PASSWORD_LENGTH = 12;
@@ -22,7 +22,7 @@ interface AccountPanelProps {
 /**
  * Sign-in credentials, editable from the dashboard.
  *
- * The panel is deliberately its own tab rather than a row inside "Content":
+ * The panel is deliberately its own section rather than a row inside "Content":
  * these two values are the keys to the dashboard, not site copy, and mixing
  * them in with the hero text is how a password ends up pasted into a public
  * field by mistake.
@@ -70,110 +70,88 @@ export default function AccountPanel({ currentEmail, labels }: AccountPanelProps
   };
 
   return (
-    <div className="max-w-xl space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-text">{labels.account.heading}</h2>
-        <p className="text-sm text-text-muted">{labels.account.description}</p>
-      </div>
+    <div className="max-w-2xl space-y-6">
+      <SectionHeader
+        title={labels.account.heading}
+        description={labels.account.description}
+      />
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-        >
-          {error}
-        </div>
-      )}
+      {error && <Alert>{error}</Alert>}
+      {saved && <Alert tone="success">{labels.account.success}</Alert>}
 
-      {saved && (
-        <div
-          role="status"
-          className="rounded-md border border-accent/40 bg-accent-soft p-3 text-sm text-accent"
-        >
-          {labels.account.success}
-        </div>
-      )}
-
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 rounded-md border p-5"
-        noValidate
-      >
-        <div className="space-y-2">
-          <Label htmlFor="account-email">{labels.account.email}</Label>
-          <Input
-            id="account-email"
-            name="email"
-            type="email"
-            dir="ltr"
-            autoComplete="username"
-            defaultValue={currentEmail}
-            className="w-full"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="account-current-password">
-            {labels.account.currentPassword}
-          </Label>
-          <Input
-            id="account-current-password"
-            name="currentPassword"
-            type="password"
-            dir="ltr"
-            autoComplete="current-password"
-            className="w-full"
-            required
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="account-new-password">
-              {labels.account.newPassword}
-            </Label>
+      <Panel>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <Field htmlFor="account-email" label={labels.account.email}>
             <Input
-              id="account-new-password"
-              name="newPassword"
+              id="account-email"
+              name="email"
+              type="email"
+              dir="ltr"
+              autoComplete="username"
+              defaultValue={currentEmail}
+              required
+            />
+          </Field>
+
+          <Field
+            htmlFor="account-current-password"
+            label={labels.account.currentPassword}
+          >
+            <Input
+              id="account-current-password"
+              name="currentPassword"
               type="password"
               dir="ltr"
-              autoComplete="new-password"
-              minLength={MIN_PASSWORD_LENGTH}
-              className="w-full"
+              autoComplete="current-password"
+              required
             />
+          </Field>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              htmlFor="account-new-password"
+              label={labels.account.newPassword}
+            >
+              <Input
+                id="account-new-password"
+                name="newPassword"
+                type="password"
+                dir="ltr"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+              />
+            </Field>
+
+            <Field
+              htmlFor="account-confirm-password"
+              label={labels.account.confirmPassword}
+            >
+              <Input
+                id="account-confirm-password"
+                name="confirmPassword"
+                type="password"
+                dir="ltr"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+              />
+            </Field>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="account-confirm-password">
-              {labels.account.confirmPassword}
-            </Label>
-            <Input
-              id="account-confirm-password"
-              name="confirmPassword"
-              type="password"
-              dir="ltr"
-              autoComplete="new-password"
-              minLength={MIN_PASSWORD_LENGTH}
-              className="w-full"
-            />
+          <p className="flex items-start gap-2 rounded-lg border border-border-soft bg-bg-elevated/40 p-3 text-xs leading-relaxed text-text-faint">
+            <KeyRound className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            {interpolate(labels.account.passwordHint, {
+              min: MIN_PASSWORD_LENGTH,
+            })}
+          </p>
+
+          <div className="flex justify-end border-t border-border-soft pt-5">
+            <Button type="submit" disabled={isPending} aria-disabled={isPending}>
+              <Save aria-hidden="true" />
+              {isPending ? labels.account.saving : labels.account.save}
+            </Button>
           </div>
-        </div>
-
-        <p className="flex items-start gap-2 text-xs text-text-faint">
-          <KeyRound className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {interpolate(labels.account.passwordHint, {
-            min: MIN_PASSWORD_LENGTH,
-          })}
-        </p>
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isPending} aria-disabled={isPending}>
-            <Save className="me-2 h-4 w-4" aria-hidden="true" />
-            {isPending ? labels.account.saving : labels.account.save}
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Panel>
     </div>
   );
 }

@@ -201,6 +201,7 @@ const fa = {
   admin: {
     title: "پنل مدیریت",
     logout: "خروج",
+    viewSite: "مشاهده سایت",
     tabs: {
       projects: "پروژه‌ها",
       skills: "مهارت‌ها",
@@ -337,6 +338,13 @@ const fa = {
       period: "بازه زمانی",
       description: "توضیحات",
       technologies: "تکنولوژی‌ها (با کاما جدا کنید)",
+      titleFa: "عنوان شغلی (فارسی)",
+      companyFa: "شرکت (فارسی)",
+      periodFa: "بازه زمانی (فارسی)",
+      descriptionFa: "توضیحات (فارسی)",
+      technologiesFa: "تکنولوژی‌ها (فارسی، با کاما جدا کنید)",
+      persianHint:
+        "اختیاری است. هر فیلدی که خالی بماند، متن انگلیسی‌اش نمایش داده می‌شود.",
       order: "ترتیب نمایش",
       orderLabel: "ترتیب: {order}",
       empty: "هنوز سابقه کاری ثبت نشده است.",

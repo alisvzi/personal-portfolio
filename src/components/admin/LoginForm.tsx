@@ -4,19 +4,26 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { loginAdmin } from "@/app/actions/auth";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { formatActionError } from "@/i18n/format";
 import type { Locale } from "@/i18n/config";
+import { Alert, Field, Panel } from "./ui";
 
 interface LoginFormProps {
   locale: Locale;
   labels: Dictionary["login"];
 }
 
+/**
+ * Sign-in screen.
+ *
+ * Centred single column with the mark above the form: the dashboard it leads to
+ * is a sidebar layout, so the entry point reads as the same product rather than
+ * a generic card floating on an empty page.
+ */
 export default function LoginForm({ locale, labels }: LoginFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -46,50 +53,50 @@ export default function LoginForm({ locale, labels }: LoginFormProps) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <Card className="w-full max-w-md border-border-soft bg-surface">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl text-text">
-            {labels.title}
-          </CardTitle>
-          <p className="text-center text-sm text-text-muted">{labels.subtitle}</p>
-        </CardHeader>
-        <CardContent>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-bg px-4 py-12">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 start-1/2 size-[34rem] -translate-x-1/2 rounded-full bg-accent-soft blur-[120px]"
+      />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-7 flex flex-col items-center gap-3 text-center">
+          <BrandMark className="size-12" />
+          <div>
+            <h1 className="text-xl font-semibold text-text">{labels.title}</h1>
+            <p className="mt-1 text-sm text-text-muted">{labels.subtitle}</p>
+          </div>
+        </div>
+
+        <Panel className="bg-surface/70">
           <form action={handleSubmit} className="space-y-4">
-            {error && (
-              <div
-                role="alert"
-                className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-              >
-                {error}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-text">
-                {labels.email}
-              </Label>
+            {error && <Alert>{error}</Alert>}
+
+            <Field htmlFor="email" label={labels.email}>
               <Input
                 id="email"
                 name="email"
                 type="email"
+                dir="ltr"
                 autoComplete="username"
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-text">
-                {labels.password}
-              </Label>
+            </Field>
+
+            <Field htmlFor="password" label={labels.password}>
               <Input
                 id="password"
                 name="password"
                 type="password"
+                dir="ltr"
                 autoComplete="current-password"
                 required
               />
-            </div>
+            </Field>
+
             <Button
               type="submit"
+              size="lg"
               className="w-full"
               disabled={isPending}
               aria-disabled={isPending}
@@ -97,8 +104,8 @@ export default function LoginForm({ locale, labels }: LoginFormProps) {
               {isPending ? labels.submitting : labels.submit}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </Panel>
+      </div>
     </div>
   );
 }

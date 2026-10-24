@@ -1,15 +1,17 @@
 "use client";
 
-import { Edit, Save } from "lucide-react";
+import { Edit } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { updateContent } from "@/app/actions/content";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { localeLabels } from "@/i18n/config";
 import { formatActionError } from "@/i18n/format";
 import type { AdminLabels } from "./types";
+import { Alert, Field, Panel, SectionHeader } from "./ui";
 
 /**
  * Editable copy fields, in display order.
@@ -109,25 +111,16 @@ export default function ContentPanel({ labels }: ContentPanelProps) {
   };
 
   if (isLoading) {
-    return <p className="text-text-muted">{labels.content.loading}</p>;
+    return <p className="text-sm text-text-muted">{labels.content.loading}</p>;
   }
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-bold text-text">
-        {labels.content.heading}
-      </h2>
+    <div className="space-y-6">
+      <SectionHeader title={labels.content.heading} />
 
-      {formError && (
-        <div
-          role="alert"
-          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-        >
-          {formError}
-        </div>
-      )}
+      {formError && <Alert>{formError}</Alert>}
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {CONTENT_FIELDS.map((field) => {
           const value = content[field.key] ?? "";
           const isEditing = editingKey === field.key;
@@ -137,22 +130,24 @@ export default function ContentPanel({ labels }: ContentPanelProps) {
             ? `${label} ${labels.content.persianSuffix}`
             : label;
 
-          return (
-            <div key={field.key} className="rounded-md border p-4">
-              {isEditing ? (
+          // The open editor takes the full width: these are paragraphs, and
+          // editing one inside a half-width card wastes the row beside it.
+          if (isEditing) {
+            return (
+              <Panel
+                key={field.key}
+                className="border-accent-line/60 bg-surface/60 lg:col-span-2"
+              >
                 <form action={handleUpdateContent}>
                   <input type="hidden" name="key" value={field.key} />
 
-                  <div className="space-y-2">
-                    <Label htmlFor={field.key}>{fullLabel}</Label>
-
+                  <Field htmlFor={field.key} label={fullLabel}>
                     {field.multiline ? (
                       <Textarea
                         id={field.key}
                         name="value"
                         defaultValue={value}
                         rows={5}
-                        className="w-full"
                         dir={field.isFa ? "rtl" : undefined}
                       />
                     ) : (
@@ -160,11 +155,10 @@ export default function ContentPanel({ labels }: ContentPanelProps) {
                         id={field.key}
                         name="value"
                         defaultValue={value}
-                        className="w-full"
                         dir={field.isFa ? "rtl" : undefined}
                       />
                     )}
-                  </div>
+                  </Field>
 
                   <div className="mt-4 flex justify-end gap-2">
                     <Button
@@ -179,35 +173,42 @@ export default function ContentPanel({ labels }: ContentPanelProps) {
                       disabled={isPending}
                       aria-disabled={isPending}
                     >
-                      <Save className="me-2 h-4 w-4" aria-hidden="true" />
                       {isPending ? labels.actions.saving : labels.actions.save}
                     </Button>
                   </div>
                 </form>
-              ) : (
-                <div>
-                  <div className="flex items-start justify-between">
-                    {/* Read-only heading, not a form control — a `<label>` here
-                        would reference nothing. */}
-                    <span className="text-sm font-medium">{fullLabel}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingKey(field.key)}
-                      aria-label={labels.actions.edit}
-                    >
-                      <Edit className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </div>
-                  <div
-                    className="mt-2 whitespace-pre-wrap text-sm"
-                    dir={field.isFa ? "rtl" : undefined}
-                  >
-                    {value || "—"}
-                  </div>
-                </div>
-              )}
-            </div>
+              </Panel>
+            );
+          }
+
+          return (
+            <Panel key={field.key} className="flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2 text-xs font-medium text-text-muted">
+                  <span className="truncate">{fullLabel}</span>
+                  {field.isFa && (
+                    <Badge variant="secondary" lang="fa">
+                      {localeLabels.fa}
+                    </Badge>
+                  )}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setEditingKey(field.key)}
+                  aria-label={`${labels.actions.edit} — ${fullLabel}`}
+                  className="shrink-0"
+                >
+                  <Edit aria-hidden="true" />
+                </Button>
+              </div>
+              <p
+                className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-text"
+                dir={field.isFa ? "rtl" : undefined}
+              >
+                {value || "—"}
+              </p>
+            </Panel>
           );
         })}
       </div>

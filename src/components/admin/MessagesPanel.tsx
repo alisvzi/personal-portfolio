@@ -5,10 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { htmlLang, type Locale } from "@/i18n/config";
 import { interpolate } from "@/i18n/format";
+import { cn } from "@/lib/utils";
 import type { AdminLabels } from "./types";
+import { Alert, EmptyState, Panel, SectionHeader } from "./ui";
 
 type Message = {
   id: string;
@@ -104,48 +105,30 @@ export default function MessagesPanel({ locale, labels }: MessagesPanelProps) {
   };
 
   if (isLoading) {
-    return <p className="text-text-muted">{labels.messages.loading}</p>;
+    return <p className="text-sm text-text-muted">{labels.messages.loading}</p>;
   }
 
   const unreadCount = messages.filter((message) => !message.read).length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text">
-          {labels.messages.heading}
-        </h2>
-        <div className="flex gap-2">
-          <Badge variant="outline">
-            {interpolate(labels.messages.total, { count: messages.length })}
-          </Badge>
-          <Badge variant="secondary">
-            {interpolate(labels.messages.unread, { count: unreadCount })}
-          </Badge>
-        </div>
-      </div>
+      <SectionHeader title={labels.messages.heading}>
+        <Badge variant="outline">
+          {interpolate(labels.messages.total, { count: messages.length })}
+        </Badge>
+        <Badge variant={unreadCount > 0 ? "default" : "secondary"}>
+          {interpolate(labels.messages.unread, { count: unreadCount })}
+        </Badge>
+      </SectionHeader>
 
-      {formError && (
-        <div
-          role="alert"
-          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-        >
-          {formError}
-        </div>
-      )}
+      {formError && <Alert>{formError}</Alert>}
 
       {messages.length === 0 && !formError ? (
-        <div className="rounded-md border p-8 text-center">
-          <MessageSquare
-            className="mx-auto h-12 w-12 text-text-faint"
-            aria-hidden="true"
-          />
-          <p className="mt-2 text-text-muted">{labels.messages.empty}</p>
-        </div>
+        <EmptyState icon={MessageSquare} title={labels.messages.empty} />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {messages.map((message) => (
-            <MessageCard
+            <MessageRow
               key={message.id}
               message={message}
               locale={locale}
@@ -161,7 +144,7 @@ export default function MessagesPanel({ locale, labels }: MessagesPanelProps) {
   );
 }
 
-interface MessageCardProps {
+interface MessageRowProps {
   message: Message;
   locale: Locale;
   labels: AdminLabels;
@@ -170,69 +153,75 @@ interface MessageCardProps {
   isBusy: boolean;
 }
 
-function MessageCard({
+function MessageRow({
   message,
   locale,
   labels,
   onMarkAsRead,
   onDelete,
   isBusy,
-}: MessageCardProps) {
+}: MessageRowProps) {
   // Rendered in the dashboard's language, not the browser's, so a Persian
   // admin sees Persian digits and date order even on an English-locale machine.
   const date = new Date(message.createdAt).toLocaleString(htmlLang[locale]);
 
   return (
-    <Card className={message.read ? "opacity-75" : ""}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{message.name}</CardTitle>
-            <a
-              href={`mailto:${message.email}`}
-              className="text-sm text-accent"
-              dir="ltr"
-            >
-              {message.email}
-            </a>
-          </div>
-          <div className="flex items-center gap-2">
+    <Panel
+      className={cn(
+        message.read ? "opacity-70" : "border-accent-line/50",
+        "hover:border-border-strong",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate font-semibold text-text">{message.name}</h3>
             {!message.read && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onMarkAsRead(message.id)}
-                disabled={isBusy}
-              >
-                {labels.actions.markAsRead}
-              </Button>
+              <Badge>{labels.messages.newBadge}</Badge>
             )}
+          </div>
+          <a
+            href={`mailto:${message.email}`}
+            className="text-sm text-accent-strong underline-offset-4 hover:underline"
+            dir="ltr"
+          >
+            {message.email}
+          </a>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!message.read && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onDelete(message.id)}
+              onClick={() => onMarkAsRead(message.id)}
               disabled={isBusy}
-              aria-label={labels.actions.delete}
             >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              {labels.actions.markAsRead}
             </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {message.subject && (
-            <p className="text-sm font-medium">{message.subject}</p>
           )}
-          {message.message && (
-            <p className="whitespace-pre-wrap">{message.message}</p>
-          )}
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-text-muted">{date}</span>
-            {!message.read && <Badge>{labels.messages.newBadge}</Badge>}
-          </div>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => onDelete(message.id)}
+            disabled={isBusy}
+            aria-label={labels.actions.delete}
+            className="hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-200"
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {message.subject && (
+        <p className="mt-3 text-sm font-medium text-text">{message.subject}</p>
+      )}
+      {message.message && (
+        <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
+          {message.message}
+        </p>
+      )}
+      <p className="mt-3 font-mono text-xs text-text-faint">{date}</p>
+    </Panel>
   );
 }

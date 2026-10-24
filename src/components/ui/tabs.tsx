@@ -18,6 +18,13 @@ function Tabs({
   );
 }
 
+/**
+ * Tabs list.
+ *
+ * The dashboard uses this as its navigation rail, so the list is transparent and
+ * the trigger carries the active state. The shipped defaults put a grey tray
+ * behind the strip, which read as a second toolbar under the page header.
+ */
 function TabsList({
   className,
   ...props
@@ -26,7 +33,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-card text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        "inline-flex w-fit items-center justify-center gap-1 rounded-lg p-1",
         className
       )}
       {...props}
@@ -42,7 +49,9 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "text-text-muted focus-visible:ring-accent-strong/40 inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color] outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "hover:bg-surface-2 hover:text-text",
+        "data-[state=active]:border-accent-line data-[state=active]:bg-accent-soft data-[state=active]:text-accent-strong",
         className
       )}
       {...props}

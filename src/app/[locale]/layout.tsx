@@ -197,11 +197,19 @@ export async function generateMetadata({
       },
     },
     icons: {
-      icon: "/favicon.ico",
+      // Three entries on purpose: `.ico` is what a tab strip asks for, the PNGs
+      // are what an installed shortcut and Android use, and both are generated
+      // from one SVG by `.workbuddy-ai/scripts/make-icons.mjs`.
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+        { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+      ],
       // Declared explicitly: setting `icons` replaces the file-convention
       // `apple-icon`, and without this link iOS falls back to requesting
-      // `/apple-touch-icon.png`, which does not exist.
-      apple: `/${locale}/apple-icon`,
+      // `/apple-touch-icon.png` at the root, which is why the file is named
+      // exactly that.
+      apple: "/apple-touch-icon.png",
     },
     manifest: "/manifest.webmanifest",
     category: "technology",

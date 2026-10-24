@@ -15,22 +15,32 @@ interface ExperienceInput {
   period: string;
   description: string;
   technologies: string[];
+  titleFa: string | null;
+  companyFa: string | null;
+  periodFa: string | null;
+  descriptionFa: string | null;
+  /** Already serialised, because the column is jsonb. */
+  technologiesFa: string;
   order: number;
 }
 
 const INSERT_EXPERIENCE = `insert into experiences
-  (title, company, period, description, technologies, sort_order)
-  values ($1, $2, $3, $4, $5, $6)`;
+  (title, company, period, description, technologies,
+   title_fa, company_fa, period_fa, description_fa, technologies_fa, sort_order)
+  values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
 
 const UPDATE_EXPERIENCE = `update experiences set
-  title = $1, company = $2, period = $3, description = $4,
-  technologies = $5, sort_order = $6, updated_at = now()
-  where id = $7
+  title = $1, company = $2, period = $3, description = $4, technologies = $5,
+  title_fa = $6, company_fa = $7, period_fa = $8, description_fa = $9,
+  technologies_fa = $10, sort_order = $11, updated_at = now()
+  where id = $12
   returning id`;
 
 /**
- * The `technologies` column is jsonb, so the array is serialised explicitly —
- * passing a JS array would be sent as a Postgres array literal instead.
+ * The `technologies` columns are jsonb, so the arrays are serialised
+ * explicitly — passing a JS array would be sent as a Postgres array literal
+ * instead. A blank Persian list is stored as an empty array, never as null, so
+ * the column constraint holds.
  */
 function experienceValues(data: ExperienceInput): unknown[] {
   return [
@@ -39,8 +49,19 @@ function experienceValues(data: ExperienceInput): unknown[] {
     data.period,
     data.description,
     JSON.stringify(data.technologies),
+    data.titleFa,
+    data.companyFa,
+    data.periodFa,
+    data.descriptionFa,
+    data.technologiesFa,
     data.order,
   ];
+}
+
+/** Blank input is stored as NULL so the read layer's fallback kicks in. */
+function optionalText(form: FormData, key: string): string | null {
+  const value = formString(form, key);
+  return value ? value : null;
 }
 
 function parse(
@@ -70,6 +91,26 @@ function parse(
     return { error: "technologiesRequired" };
   }
 
+  // Persian is optional in full: an entry may be written in English only, and
+  // the timeline then shows the English copy on the Persian page too.
+  const titleFa = optionalText(form, "titleFa");
+  const companyFa = optionalText(form, "companyFa");
+  const periodFa = optionalText(form, "periodFa");
+  const descriptionFa = optionalText(form, "descriptionFa");
+
+  if (titleFa && titleFa.length > LIMITS.title) {
+    return { error: "roleCompanyTooLong" };
+  }
+  if (companyFa && companyFa.length > LIMITS.company) {
+    return { error: "roleCompanyTooLong" };
+  }
+  if (periodFa && periodFa.length > LIMITS.period) {
+    return { error: "periodTooLong" };
+  }
+  if (descriptionFa && descriptionFa.length > LIMITS.description) {
+    return { error: "descriptionTooLong" };
+  }
+
   return {
     data: {
       title,
@@ -77,6 +118,13 @@ function parse(
       period,
       description,
       technologies,
+      titleFa,
+      companyFa,
+      periodFa,
+      descriptionFa,
+      technologiesFa: JSON.stringify(
+        parseTechnologies(formString(form, "technologiesFa") ?? ""),
+      ),
       order: formNumber(form, "order", 0),
     },
   };

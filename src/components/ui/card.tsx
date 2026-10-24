@@ -2,12 +2,19 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Card.
+ *
+ * Retinted to the design tokens: `bg-card` resolved to a 48%-lightness grey,
+ * which turned every panel into a washed-out block on the navy background.
+ * The surface tokens keep the elevation ladder readable.
+ */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-surface/55 text-text flex flex-col gap-6 rounded-xl border border-border-soft py-6 shadow-sm backdrop-blur-sm",
         className
       )}
       {...props}
@@ -42,7 +49,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-text-muted text-sm", className)}
       {...props}
     />
   )

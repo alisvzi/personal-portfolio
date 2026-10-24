@@ -75,16 +75,33 @@ create table if not exists skills (
 create index if not exists skills_order_idx on skills (sort_order asc, name asc);
 
 create table if not exists experiences (
-  id           uuid primary key default gen_random_uuid(),
-  title        text not null,
-  company      text not null,
-  period       text not null,
-  description  text not null,
-  technologies jsonb not null default '[]'::jsonb,
-  sort_order   integer not null default 0,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
+  id              uuid primary key default gen_random_uuid(),
+  title           text not null,
+  company         text not null,
+  period          text not null,
+  description     text not null,
+  technologies    jsonb not null default '[]'::jsonb,
+  -- Persian variants. Each one falls back to its base column when empty, so an
+  -- entry saved in one language still renders on the other locale.
+  title_fa        text,
+  company_fa      text,
+  period_fa       text,
+  description_fa  text,
+  technologies_fa jsonb not null default '[]'::jsonb,
+  sort_order      integer not null default 0,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
+
+-- `create table if not exists` is a no-op on a database that already has the
+-- table, so the Persian columns above need their own migration step for
+-- deployments created before they existed.
+alter table experiences
+  add column if not exists title_fa        text,
+  add column if not exists company_fa      text,
+  add column if not exists period_fa       text,
+  add column if not exists description_fa  text,
+  add column if not exists technologies_fa jsonb not null default '[]'::jsonb;
 
 create index if not exists experiences_order_idx
   on experiences (sort_order asc, id desc);

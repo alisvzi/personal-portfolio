@@ -72,6 +72,11 @@ export interface ExperienceRow {
   period: string;
   description: string;
   technologies: unknown;
+  title_fa: string | null;
+  company_fa: string | null;
+  period_fa: string | null;
+  description_fa: string | null;
+  technologies_fa: unknown;
   sort_order: number;
 }
 
@@ -184,6 +189,24 @@ export function toSkill(row: SkillRow): Skill {
   };
 }
 
+/** jsonb array → `string[]`, dropping anything that is not a usable label. */
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    if (typeof entry !== "string") return [];
+    const trimmed = entry.trim();
+    return trimmed ? [trimmed] : [];
+  });
+}
+
+/**
+ * An experience row.
+ *
+ * `technologies` and `technologies_fa` are jsonb: the driver hands back parsed
+ * arrays, but a hand-written value could arrive as a bare string, so both are
+ * funnelled through the same reader.
+ */
 export function toExperience(row: ExperienceRow): Experience {
   return {
     id: row.id,
@@ -191,9 +214,12 @@ export function toExperience(row: ExperienceRow): Experience {
     company: row.company,
     period: row.period,
     description: row.description,
-    technologies: Array.isArray(row.technologies)
-      ? (row.technologies as string[])
-      : [],
+    technologies: readStringArray(row.technologies),
+    titleFa: optional(row.title_fa),
+    companyFa: optional(row.company_fa),
+    periodFa: optional(row.period_fa),
+    descriptionFa: optional(row.description_fa),
+    technologiesFa: readStringArray(row.technologies_fa),
     order: typeof row.sort_order === "number" ? row.sort_order : 0,
   };
 }

@@ -186,6 +186,7 @@ const en = {
   admin: {
     title: "Admin dashboard",
     logout: "Sign out",
+    viewSite: "View site",
     tabs: {
       projects: "Projects",
       skills: "Skills",
@@ -321,6 +322,13 @@ const en = {
       period: "Period",
       description: "Description",
       technologies: "Technologies (comma separated)",
+      titleFa: "Job title (Persian)",
+      companyFa: "Company (Persian)",
+      periodFa: "Period (Persian)",
+      descriptionFa: "Description (Persian)",
+      technologiesFa: "Technologies (Persian, comma separated)",
+      persianHint:
+        "Optional. A field left empty shows its English text on the Persian page as well.",
       order: "Display order",
       orderLabel: "Order: {order}",
       empty: "No experience entries yet.",

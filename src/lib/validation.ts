@@ -125,7 +125,9 @@ export function parseTechnologies(input: string): string[] {
   return Array.from(
     new Set(
       input
-        .split(",")
+        // Both comma styles: the Persian keyboard produces "،" and it would
+        // otherwise glue a whole list into one tag.
+        .split(/[,،;؛]+/)
         .map((tech) => tech.trim())
         .filter((tech) => tech.length > 0 && tech.length <= 60),
     ),

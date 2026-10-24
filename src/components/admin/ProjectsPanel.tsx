@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, FolderKanban, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
@@ -11,7 +11,6 @@ import {
 } from "@/app/actions/projects";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatActionError, interpolate } from "@/i18n/format";
 import { compressImage } from "@/lib/utils/image/compress";
 import type { AdminLabels } from "./types";
+import { Alert, EmptyState, Panel, SectionHeader } from "./ui";
 
 interface GalleryImage {
   url: string;
@@ -187,24 +187,14 @@ export default function ProjectsPanel({ labels }: ProjectsPanelProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text">
-          {labels.projects.heading}
-        </h2>
+      <SectionHeader title={labels.projects.heading}>
         <Button onClick={() => setEditingProject(emptyProject())}>
-          <Plus className="me-2 h-4 w-4" aria-hidden="true" />
+          <Plus aria-hidden="true" />
           {labels.actions.add}
         </Button>
-      </div>
+      </SectionHeader>
 
-      {formError && (
-        <div
-          role="alert"
-          className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-        >
-          {formError}
-        </div>
-      )}
+      {formError && <Alert>{formError}</Alert>}
 
       {editingProject && (
         <ProjectForm
@@ -222,11 +212,9 @@ export default function ProjectsPanel({ labels }: ProjectsPanelProps) {
       )}
 
       {projects.length === 0 && !editingProject && !formError ? (
-        <p className="py-8 text-center text-sm text-text-muted">
-          {labels.projects.empty}
-        </p>
+        <EmptyState icon={FolderKanban} title={labels.projects.empty} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {projects.map((project) => (
             <ProjectCard
               key={project.id}
@@ -259,60 +247,91 @@ function ProjectCard({
   isDeleting,
 }: ProjectCardProps) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-xl">{project.title}</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit(project)}
-              aria-label={labels.actions.edit}
-            >
-              <Edit className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDelete(project.id)}
-              disabled={isDeleting}
-              aria-label={labels.actions.delete}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
+    <Panel className="flex flex-col gap-3 hover:border-border-strong">
+      <div className="flex items-start gap-3">
+        {project.imageUrl && (
+          <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-border-soft">
+            <Image
+              src={project.imageUrl}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-text">{project.title}</p>
+              {project.titleFa && (
+                <p
+                  className="mt-0.5 truncate text-xs text-accent-strong"
+                  dir="rtl"
+                >
+                  {project.titleFa}
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-1.5">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => onEdit(project)}
+                aria-label={labels.actions.edit}
+              >
+                <Edit aria-hidden="true" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => onDelete(project.id)}
+                disabled={isDeleting}
+                aria-label={labels.actions.delete}
+                className="hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-200"
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {project.featured && <Badge>{labels.projects.featuredBadge}</Badge>}
-            <Badge variant="secondary">/{project.slug}</Badge>
-            <span className="text-sm text-text-muted">
+            <Badge variant="outline" dir="ltr">
+              /{project.slug}
+            </Badge>
+            <span className="text-xs text-text-faint">
               {interpolate(labels.projects.orderLabel, { order: project.order })}
             </span>
           </div>
-          <p className="line-clamp-2 text-sm">{project.description}</p>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {project.technologies
-              .split(",")
-              .map((tech) => tech.trim())
-              .filter(Boolean)
-              .map((tech, i) => (
-                <Badge key={`${tech}-${i}`} variant="secondary">
-                  {tech}
-                </Badge>
-              ))}
-          </div>
-          {project.gallery.length > 0 && (
-            <p className="text-xs text-text-muted">
-              {labels.projects.galleryExisting}: {project.gallery.length}
-            </p>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <p
+        className="line-clamp-2 text-sm leading-relaxed text-text-muted"
+        dir="auto"
+      >
+        {project.description}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {project.technologies
+          .split(",")
+          .map((tech) => tech.trim())
+          .filter(Boolean)
+          .map((tech, i) => (
+            <Badge key={`${tech}-${i}`} variant="secondary">
+              {tech}
+            </Badge>
+          ))}
+        {project.gallery.length > 0 && (
+          <span className="ms-auto text-xs text-text-faint">
+            {labels.projects.galleryExisting}: {project.gallery.length}
+          </span>
+        )}
+      </div>
+    </Panel>
   );
 }
 
@@ -382,22 +401,13 @@ function ProjectForm({ project, labels, onCancel, onSuccess }: ProjectFormProps)
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {project.id ? labels.projects.editTitle : labels.projects.addTitle}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form action={handleSubmit} className="space-y-4">
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md border border-app-error/40 bg-app-error-light/10 p-3 text-sm text-app-error-text"
-            >
-              {error}
-            </div>
-          )}
+    <Panel className="border-accent-line/60 bg-surface/60">
+      <h3 className="text-base font-semibold text-text">
+        {project.id ? labels.projects.editTitle : labels.projects.addTitle}
+      </h3>
+
+      <form action={handleSubmit} className="mt-5 space-y-5">
+        {error && <Alert>{error}</Alert>}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -658,7 +668,7 @@ function ProjectForm({ project, labels, onCancel, onSuccess }: ProjectFormProps)
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 border-t border-border-soft pt-5">
             <Button type="button" variant="outline" onClick={onCancel}>
               {labels.actions.cancel}
             </Button>
@@ -667,7 +677,6 @@ function ProjectForm({ project, labels, onCancel, onSuccess }: ProjectFormProps)
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </Panel>
   );
 }

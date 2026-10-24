@@ -10,6 +10,10 @@ import type { Dictionary } from "@/i18n/dictionaries/en";
 export interface AdminLabels {
   title: string;
   logout: string;
+  /** Link back to the public site, shown in the sidebar footer. */
+  viewSite: string;
+  /** Labels for the in-panel language switcher. */
+  language: Dictionary["language"];
   tabs: Dictionary["admin"]["tabs"];
   actions: Dictionary["admin"]["actions"];
   errors: Dictionary["admin"]["errors"];

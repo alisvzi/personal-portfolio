@@ -146,9 +146,19 @@ const PERSIAN_FIELDS = {
   ],
   project: ["titleFa", "descriptionFa", "longDescriptionFa"],
   skill: ["nameFa"],
-  // Experience records are single-language: the same field holds either script.
-  // `normalizePersian` returns Latin-only text untouched, so this is safe.
-  experience: ["title", "company", "period", "description"],
+  // Both language slots are normalised: the Persian columns because that is
+  // their whole content, the base columns because a record created before the
+  // Persian columns existed stored its Persian copy there.
+  experience: [
+    "title",
+    "company",
+    "period",
+    "description",
+    "titleFa",
+    "companyFa",
+    "periodFa",
+    "descriptionFa",
+  ],
 } as const;
 
 export const getContent = cache(async (): Promise<Content> =>
@@ -272,7 +282,9 @@ export const getSkills = cache(async (): Promise<Skill[]> =>
 export const getExperiences = cache(async (): Promise<Experience[]> =>
   safeRead("experiences", [], async () => {
     const rows = await query<ExperienceRow>(
-      `select id, title, company, period, description, technologies, sort_order
+      `select id, title, company, period, description, technologies,
+              title_fa, company_fa, period_fa, description_fa, technologies_fa,
+              sort_order
        from experiences order by sort_order asc, id desc`,
     );
 

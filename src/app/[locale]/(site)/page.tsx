@@ -120,7 +120,11 @@ export default async function HomePage({
         />
       </ChapterPanel>
       <ChapterPanel index={2}>
-        <ExperienceSection experiences={experiences} labels={dict.experience} />
+        <ExperienceSection
+          experiences={experiences}
+          locale={locale}
+          labels={dict.experience}
+        />
       </ChapterPanel>
       <ChapterPanel index={3}>
         <WorkSection
