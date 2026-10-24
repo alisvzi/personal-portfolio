@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import mongoose from "mongoose";
 
 import { actionError, actionOk, type ActionErrorKey, type ActionResult } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB } from "@/lib/db/mongodb";
+import { execute, isValidId, query } from "@/lib/db/postgres";
+import { toProject, type ProjectRow } from "@/lib/db/rows";
 import { blobReadWriteToken } from "@/lib/env";
-import ProjectModel from "@/lib/models/Project";
 import { isValidSlug, slugify } from "@/lib/slug";
 import {
   ImageValidationError,
@@ -37,15 +36,84 @@ import type { ProjectImage } from "@/types";
  * panel renders them in the admin's current language.
  */
 
+const PROJECT_COLUMNS = `id, slug, title, title_fa, description, description_fa,
+  long_description, long_description_fa, role, year, client, image_url,
+  image_placeholder_url, gallery, github_url, project_url, technologies,
+  featured, sort_order, created_at, updated_at`;
+
+/**
+ * The complete writable state of a project row.
+ *
+ * Both insert and update take this shape and pass it to a statement with a
+ * fixed column list. Nothing here is derived from request keys, so no column
+ * name is ever interpolated from user input.
+ */
+interface ProjectFields {
+  slug: string;
+  title: string;
+  titleFa?: string;
+  description: string;
+  descriptionFa?: string;
+  longDescription?: string;
+  longDescriptionFa?: string;
+  role?: string;
+  year?: string;
+  client?: string;
+  imageUrl: string;
+  imagePlaceholderUrl?: string;
+  gallery: ProjectImage[];
+  githubUrl?: string;
+  projectUrl?: string;
+  technologies: string;
+  featured: boolean;
+  order: number;
+}
+
+const INSERT_PROJECT = `insert into projects
+  (slug, title, title_fa, description, description_fa, long_description,
+   long_description_fa, role, year, client, image_url, image_placeholder_url,
+   gallery, github_url, project_url, technologies, featured, sort_order)
+  values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+          $16, $17, $18)
+  returning id`;
+
+const UPDATE_PROJECT = `update projects set
+  slug = $1, title = $2, title_fa = $3, description = $4, description_fa = $5,
+  long_description = $6, long_description_fa = $7, role = $8, year = $9,
+  client = $10, image_url = $11, image_placeholder_url = $12, gallery = $13,
+  github_url = $14, project_url = $15, technologies = $16, featured = $17,
+  sort_order = $18, updated_at = now()
+  where id = $19
+  returning id`;
+
+/** `gallery` is jsonb, so the array is serialised rather than sent as-is. */
+function projectValues(project: ProjectFields): unknown[] {
+  return [
+    project.slug,
+    project.title,
+    project.titleFa ?? null,
+    project.description,
+    project.descriptionFa ?? null,
+    project.longDescription ?? null,
+    project.longDescriptionFa ?? null,
+    project.role ?? null,
+    project.year ?? null,
+    project.client ?? null,
+    project.imageUrl,
+    project.imagePlaceholderUrl ?? null,
+    JSON.stringify(project.gallery),
+    project.githubUrl ?? null,
+    project.projectUrl ?? null,
+    project.technologies,
+    project.featured,
+    project.order,
+  ];
+}
+
 function revalidatePublicPages(): void {
   // Revalidates every route underneath the root layout, covering both locales
   // and every project detail page.
   revalidatePath("/", "layout");
-}
-
-/** Rejects anything that is not a real ObjectId before it reaches Mongoose. */
-function isRealId(id: string | undefined): id is string {
-  return Boolean(id) && mongoose.isValidObjectId(id);
 }
 
 function readImageField(form: FormData): File | null {
@@ -68,22 +136,6 @@ function readRemovedGalleryUrls(form: FormData): Set<string> {
       .getAll("galleryRemove")
       .filter((value): value is string => typeof value === "string" && value.length > 0),
   );
-}
-
-function readGallery(value: unknown): ProjectImage[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((entry) => {
-    const item = entry as Record<string, unknown>;
-    const url = typeof item.url === "string" ? item.url.trim() : "";
-    if (!url) return [];
-    return [
-      {
-        url,
-        placeholder:
-          typeof item.placeholder === "string" ? item.placeholder : undefined,
-      },
-    ];
-  });
 }
 
 /**
@@ -137,6 +189,7 @@ function validateProjectFields(form: FormData): ActionErrorKey | null {
   return null;
 }
 
+/** The form fields other than slug, image and gallery. */
 function buildProjectData(form: FormData) {
   return {
     title: formString(form, "title")!,
@@ -177,18 +230,28 @@ async function resolveSlug(
   let counter = 2;
 
   // Bounded: 50 attempts is far beyond any realistic number of collisions and
-  // guarantees the loop cannot spin forever on a corrupted collection.
+  // guarantees the loop cannot spin forever on a corrupted table.
   while (counter < 50) {
-    const clash = await ProjectModel.exists({
-      slug: candidate,
-      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
-    });
-    if (!clash) break;
+    const clash = await query<{ id: string }>(
+      excludeId
+        ? "select id from projects where slug = $1 and id <> $2 limit 1"
+        : "select id from projects where slug = $1 limit 1",
+      excludeId ? [candidate, excludeId] : [candidate],
+    );
+    if (clash.length === 0) break;
     candidate = `${desired}-${counter}`;
     counter += 1;
   }
 
   return candidate;
+}
+
+async function findProject(id: string) {
+  const rows = await query<ProjectRow>(
+    `select ${PROJECT_COLUMNS} from projects where id = $1 limit 1`,
+    [id],
+  );
+  return rows[0] ? toProject(rows[0]) : null;
 }
 
 export async function createProject(form: FormData): Promise<ActionResult> {
@@ -197,8 +260,6 @@ export async function createProject(form: FormData): Promise<ActionResult> {
 
     const error = validateProjectFields(form);
     if (error) return { success: false, error };
-
-    await connectDB();
 
     const token = blobReadWriteToken();
     const slug = await resolveSlug(formString(form, "slug"), formString(form, "title")!);
@@ -221,13 +282,15 @@ export async function createProject(form: FormData): Promise<ActionResult> {
     }
 
     try {
-      await ProjectModel.create({
-        ...buildProjectData(form),
-        slug,
-        imageUrl: image.url,
-        imagePlaceholderUrl: image.placeholder ?? undefined,
-        gallery,
-      });
+      await execute(INSERT_PROJECT, [
+        ...projectValues({
+          ...buildProjectData(form),
+          slug,
+          imageUrl: image.url,
+          imagePlaceholderUrl: image.placeholder ?? undefined,
+          gallery,
+        }),
+      ]);
     } catch (error) {
       // The uploads already succeeded, so a failed insert would otherwise leave
       // orphaned objects in the blob store forever. Best-effort cleanup: the
@@ -258,13 +321,12 @@ export async function updateProject(form: FormData): Promise<ActionResult> {
     await requireAdmin();
 
     const id = formString(form, "id");
-    if (!isRealId(id)) return { success: false, error: "idRequired" };
+    if (!isValidId(id)) return { success: false, error: "idRequired" };
 
     const error = validateProjectFields(form);
     if (error) return { success: false, error };
 
-    await connectDB();
-    const existing = await ProjectModel.findById(id).exec();
+    const existing = await findProject(id);
     if (!existing) return { success: false, error: "notFound" };
 
     const token = blobReadWriteToken();
@@ -275,15 +337,13 @@ export async function updateProject(form: FormData): Promise<ActionResult> {
       id,
     );
 
-    const update: Record<string, unknown> = { ...buildProjectData(form), slug };
-
     /*
      * Gallery capacity is checked *before* any upload happens. The cover is
      * uploaded first, so validating afterwards would mean a rejected save still
      * left an orphaned blob behind with nothing referencing it.
      */
     const removed = readRemovedGalleryUrls(form);
-    const keptGallery = readGallery(existing.gallery).filter(
+    const keptGallery = (existing.gallery ?? []).filter(
       (image) => !removed.has(image.url),
     );
     const galleryFiles = readGalleryFiles(form);
@@ -300,12 +360,14 @@ export async function updateProject(form: FormData): Promise<ActionResult> {
     // --- Cover -------------------------------------------------------------
     const file = readImageField(form);
     let replacedImage: string | undefined;
+    let imageUrl = existing.imageUrl;
+    let imagePlaceholderUrl = existing.imagePlaceholderUrl;
 
     if (file) {
       const image = await saveImage(file, token);
       replacedImage = existing.imageUrl;
-      update.imageUrl = image.url;
-      update.imagePlaceholderUrl = image.placeholder ?? undefined;
+      imageUrl = image.url;
+      imagePlaceholderUrl = image.placeholder ?? undefined;
     }
 
     // --- Gallery -----------------------------------------------------------
@@ -320,11 +382,24 @@ export async function updateProject(form: FormData): Promise<ActionResult> {
     }
 
     const nextGallery = [...keptGallery, ...newGalleryImages];
-    update.gallery = nextGallery;
 
-    await ProjectModel.findByIdAndUpdate(id, update, { runValidators: true }).exec();
+    // The whole row is written in one statement rather than a partial `$set`:
+    // the column list stays fixed, so a field can never be silently omitted
+    // because of a key that came from the form.
+    const updated = await query<{ id: string }>(UPDATE_PROJECT, [
+      ...projectValues({
+        ...buildProjectData(form),
+        slug,
+        imageUrl,
+        imagePlaceholderUrl,
+        gallery: nextGallery,
+      }),
+      id,
+    ]);
 
-    // Objects are only removed once the document actually points elsewhere.
+    if (updated.length === 0) return { success: false, error: "notFound" };
+
+    // Objects are only removed once the row actually points elsewhere.
     // Deleting first would leave the project referencing files that no longer
     // exist if the update then failed.
     const orphaned = [
@@ -356,18 +431,17 @@ export async function deleteProject(form: FormData): Promise<ActionResult> {
     await requireAdmin();
 
     const id = formString(form, "id");
-    if (!isRealId(id)) return { success: false, error: "idRequired" };
+    if (!isValidId(id)) return { success: false, error: "idRequired" };
 
-    await connectDB();
-    const existing = await ProjectModel.findById(id).exec();
+    const existing = await findProject(id);
     if (!existing) return { success: false, error: "notFound" };
 
-    const galleryUrls = readGallery(existing.gallery).map((image) => image.url);
+    const galleryUrls = (existing.gallery ?? []).map((image) => image.url);
 
     // Row first, files second. If a blob delete then fails we are left with an
     // orphaned object (invisible and harmless), whereas the reverse order would
     // leave a live project pointing at an image that no longer exists.
-    await ProjectModel.findByIdAndDelete(id).exec();
+    await execute("delete from projects where id = $1", [id]);
 
     const token = blobReadWriteToken();
     for (const url of [existing.imageUrl, ...galleryUrls]) {

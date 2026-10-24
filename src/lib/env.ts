@@ -28,17 +28,27 @@ function required(name: string, hint: string): string {
 }
 
 /**
- * MongoDB connection string.
+ * PostgreSQL connection string.
  *
- * A MongoDB Atlas free (M0) cluster is the intended target; the connection
- * string must include a database name, e.g.
- * `mongodb+srv://user:pass@cluster.mongodb.net/portfolio`.
+ * Provisioned by the Neon integration on Vercel, which injects `DATABASE_URL`
+ * (the pooled endpoint). `POSTGRES_URL` is accepted as a fallback because the
+ * integration also exposes that alias, and older deployments may only have it.
  */
-export function mongoUri(): string {
-  return required(
-    "MONGODB_URI",
-    "Set it to your MongoDB connection string, including the database name.",
-  );
+export function databaseUrl(): string {
+  const value = read("DATABASE_URL") ?? read("POSTGRES_URL");
+  if (!value) {
+    throw new Error(
+      'Missing required environment variable "DATABASE_URL". Set it to your ' +
+        "PostgreSQL connection string (the Neon integration on Vercel injects " +
+        "it automatically). See .env.example.",
+    );
+  }
+  return value;
+}
+
+/** Whether a connection string is present, without throwing when it is not. */
+export function hasDatabaseUrl(): boolean {
+  return Boolean(read("DATABASE_URL") ?? read("POSTGRES_URL"));
 }
 
 /**

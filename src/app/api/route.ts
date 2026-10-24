@@ -1,4 +1,4 @@
-import { connectDB, dbHealth, isMongoConfigured } from "@/lib/db/mongodb";
+import { dbHealth, isDbConfigured } from "@/lib/db/postgres";
 
 export const dynamic = "force-dynamic";
 
@@ -6,40 +6,35 @@ export const dynamic = "force-dynamic";
  * Liveness probe.
  *
  * Deliberately returns no host, port, database name or connection string. The
- * previous version echoed the whole `dbHealth()` object, including the Atlas
- * cluster hostname, through a fully public endpoint.
+ * previous version echoed the whole health object, including the cluster
+ * hostname, through a fully public endpoint.
  *
  * The three states exist because they are fixed in different places:
  *
- * - `not_configured` — `MONGODB_URI` is absent from this environment.
- * - `unreachable`    — the URI exists but the connection failed; almost always
- *                      the cluster's IP allow-list or a wrong password.
+ * - `not_configured` — `DATABASE_URL` is absent from this environment.
+ * - `unreachable`    — the URL exists but the query failed; usually a suspended
+ *                      Neon branch or a rotated password.
  * - `ok`             — connected.
  *
  * Without the distinction, both failures surface in the browser as React error
  * #441 with no further detail.
  */
 export async function GET() {
-  if (!isMongoConfigured()) {
+  if (!isDbConfigured()) {
     return Response.json(
       { status: "misconfigured", database: "not_configured" },
       { status: 503 },
     );
   }
 
-  try {
-    await connectDB();
-  } catch {
+  const { connected } = await dbHealth();
+
+  if (!connected) {
     return Response.json(
       { status: "unavailable", database: "unreachable" },
       { status: 503 },
     );
   }
 
-  const { connected } = dbHealth();
-
-  return Response.json({
-    status: connected ? "ok" : "unavailable",
-    database: connected ? "connected" : "connecting",
-  });
+  return Response.json({ status: "ok", database: "connected" });
 }

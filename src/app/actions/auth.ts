@@ -14,12 +14,10 @@ import {
   requireAdmin,
   sessionCookieOptions,
 } from "@/lib/auth";
-import { connectDB } from "@/lib/db/mongodb";
+import { isValidId, execute, query } from "@/lib/db/postgres";
 import { jwtSecret } from "@/lib/env";
-import UserModel from "@/lib/models/User";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { isEmail } from "@/lib/validation";
-
 /**
  * Sign-in returns a dictionary key rather than a sentence, so the login page
  * renders the failure in the language it is currently showing.
@@ -69,12 +67,11 @@ export async function loginAdmin(formData: FormData): Promise<LoginResult> {
   }
 
   try {
-    await connectDB();
-
-    const user = await UserModel.findOne({
-      email: email.trim().toLowerCase(),
-      role: "admin",
-    }).exec();
+    const rows = await query<{ id: string; password: string }>(
+      "select id, password from users where email = $1 and role = 'admin' limit 1",
+      [email.trim().toLowerCase()],
+    );
+    const user = rows[0];
 
     const passwordMatches = await bcrypt.compare(
       password,
@@ -86,7 +83,7 @@ export async function loginAdmin(formData: FormData): Promise<LoginResult> {
     }
 
     const token = await createSessionToken({
-      userId: String(user._id),
+      userId: user.id,
       role: "admin",
     });
 
@@ -183,9 +180,17 @@ export async function updateAdminCredentials(
       };
     }
 
-    await connectDB();
+    // A token minted before the migration carries an ObjectId, which Postgres
+    // would reject as a malformed uuid; treat it as a dead session.
+    if (!isValidId(session.userId)) {
+      return { success: false, error: "unauthorized" };
+    }
 
-    const user = await UserModel.findById(session.userId).exec();
+    const rows = await query<{ id: string; email: string; password: string }>(
+      "select id, email, password from users where id = $1 limit 1",
+      [session.userId],
+    );
+    const user = rows[0];
     if (!user) {
       return { success: false, error: "unauthorized" };
     }
@@ -197,21 +202,23 @@ export async function updateAdminCredentials(
 
     const nextEmail = email.trim().toLowerCase();
     if (nextEmail !== user.email) {
-      const taken = await UserModel.exists({
-        email: nextEmail,
-        _id: { $ne: user._id },
-      });
-      if (taken) {
+      const taken = await query<{ id: string }>(
+        "select id from users where email = $1 and id <> $2 limit 1",
+        [nextEmail, user.id],
+      );
+      if (taken.length > 0) {
         return { success: false, error: "emailTaken" };
       }
-      user.email = nextEmail;
     }
 
-    if (wantsNewPassword) {
-      user.password = await bcrypt.hash(newPassword, 10);
-    }
+    const nextPassword = wantsNewPassword
+      ? await bcrypt.hash(newPassword, 10)
+      : user.password;
 
-    await user.save();
+    await execute(
+      "update users set email = $1, password = $2, updated_at = now() where id = $3",
+      [nextEmail, nextPassword, user.id],
+    );
 
     return actionOk();
   } catch (error) {

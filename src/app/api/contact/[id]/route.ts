@@ -2,8 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
-import { connectDB, isValidObjectId } from "@/lib/db/mongodb";
-import MessageModel from "@/lib/models/Message";
+import { isValidId, query } from "@/lib/db/postgres";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +21,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     await requireAdmin();
 
     const { id } = await context.params;
-    if (!isValidObjectId(id)) {
+    if (!isValidId(id)) {
       return jsonError("Message not found.", 404);
     }
 
@@ -31,14 +30,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return jsonError("Only the `read` flag can be updated.", 400);
     }
 
-    await connectDB();
-    const updated = await MessageModel.findByIdAndUpdate(
-      id,
-      { $set: { read: body.read } },
-      { new: true, runValidators: true },
+    const updated = await query<{ id: string }>(
+      "update messages set read = $1 where id = $2 returning id",
+      [body.read, id],
     );
 
-    if (!updated) {
+    if (updated.length === 0) {
       return jsonError("Message not found.", 404);
     }
 
@@ -54,13 +51,15 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     await requireAdmin();
 
     const { id } = await context.params;
-    if (!isValidObjectId(id)) {
+    if (!isValidId(id)) {
       return jsonError("Message not found.", 404);
     }
 
-    await connectDB();
-    const deleted = await MessageModel.findByIdAndDelete(id);
-    if (!deleted) {
+    const deleted = await query<{ id: string }>(
+      "delete from messages where id = $1 returning id",
+      [id],
+    );
+    if (deleted.length === 0) {
       return jsonError("Message not found.", 404);
     }
 

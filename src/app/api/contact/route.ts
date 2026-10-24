@@ -4,8 +4,7 @@ import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
 import { isSameOriginRequest } from "@/lib/csrf";
 import { getMessages } from "@/lib/data";
-import { connectDB } from "@/lib/db/mongodb";
-import MessageModel from "@/lib/models/Message";
+import { query } from "@/lib/db/postgres";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { LIMITS, isEmail, isNonEmptyString } from "@/lib/validation";
 
@@ -78,15 +77,14 @@ export async function POST(request: NextRequest) {
       return jsonError("Please provide a valid message.", 400);
     }
 
-    await connectDB();
-    const created = await MessageModel.create({
-      name,
-      email,
-      subject: subject || undefined,
-      message,
-    });
+    const created = await query<{ id: string }>(
+      `insert into messages (name, email, subject, message)
+       values ($1, $2, $3, $4)
+       returning id`,
+      [name, email, subject || null, message],
+    );
 
-    return jsonOk({ id: String(created._id) }, 201);
+    return jsonOk({ id: created[0]?.id }, 201);
   } catch (error) {
     return handleRouteError(error, "POST /api/contact");
   }

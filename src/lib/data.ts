@@ -1,23 +1,28 @@
 import { cache } from "react";
 
-import { connectDB } from "@/lib/db/mongodb";
 import { getAdminSession } from "@/lib/auth";
 import { PERSON } from "@/lib/constants";
+import { isValidId, query } from "@/lib/db/postgres";
+import {
+  toContent,
+  toExperience,
+  toMessage,
+  toProject,
+  toSkill,
+  type ContentRow,
+  type ExperienceRow,
+  type MessageRow,
+  type ProjectRow,
+  type SkillRow,
+} from "@/lib/db/rows";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import { normalizePersianFields } from "@/lib/utils/persian";
-import ContentModel from "@/lib/models/Content";
-import ExperienceModel from "@/lib/models/Experience";
-import MessageModel from "@/lib/models/Message";
-import ProjectModel from "@/lib/models/Project";
-import SkillModel from "@/lib/models/Skill";
-import UserModel from "@/lib/models/User";
 import type {
   Content,
   Experience,
   Message,
   PortfolioData,
   Project,
-  ProjectImage,
   Skill,
 } from "@/types";
 
@@ -25,28 +30,13 @@ import type {
  * Data access layer.
  *
  * All database reads for the UI go through here so that query shape, sorting,
- * projections and serialisation are defined once. Route Handlers and Server
- * Components both call these functions instead of talking to Mongoose directly.
+ * column selection and serialisation are defined once. Route Handlers and
+ * Server Components both call these functions instead of issuing SQL directly.
  *
  * Each reader is wrapped in React's `cache()`. Within a single render pass the
- * landing page previously issued four identical `ContentModel.findOne()` calls
- * (layout sidebar, hero, about and contact sections); they now collapse to one
- * query and one document parse.
+ * landing page would otherwise issue four identical content queries (layout
+ * sidebar, hero, about and contact sections); they collapse to one.
  */
-
-/**
- * Converts a lean Mongoose document to the plain, serialisable shape the UI
- * consumes: `_id` becomes a string `id`, internal fields are dropped.
- *
- * The result is typed as `Record<string, unknown>` on purpose — each reader
- * below narrows the fields it knows about. Casting to the domain type happens
- * once, at the end, where the shape is actually guaranteed by the schema.
- */
-function toPlain(doc: unknown): Record<string, unknown> {
-  const { _id, ...rest } = doc as Record<string, unknown> & { _id: unknown };
-  delete rest.__v;
-  return { ...rest, id: String(_id) };
-}
 
 /**
  * Raised when a page has no honest fallback because the read itself failed.
@@ -67,13 +57,12 @@ export class DataUnavailableError extends Error {
  * Runs a public read, falling back to a default when the database is
  * unreachable.
  *
- * Every page is server-rendered and reads MongoDB on each request. Without
- * this guard a single unreachable cluster — a missing `MONGODB_URI`, an Atlas
- * IP allow-list that does not cover Vercel's egress, a cold-start timeout —
- * throws inside the Server Component render. React reports that only as
- * "An error occurred in the Server Components render" (production error #441),
- * so the visitor sees a blank error page and the real cause never leaves the
- * function log.
+ * Every page is server-rendered and reads the database on each request.
+ * Without this guard a single unreachable database — a missing `DATABASE_URL`,
+ * a suspended Neon branch, a cold-start timeout — throws inside the Server
+ * Component render. React reports that only as "An error occurred in the
+ * Server Components render" (production error #441), so the visitor sees a
+ * blank error page and the real cause never leaves the function log.
  *
  * Degrading to defaults keeps the portfolio online through exactly the kind of
  * transient failure a serverless deployment sees most often. The real error is
@@ -112,7 +101,7 @@ export const DEFAULT_CONTENT: Content = {
   // translated, but it *is* transliterated — and a Persian reader searching for
   // the Persian spelling must land on a page that shows it. Defaulting it here
   // means the Persian page is correct even before the owner saves the content
-  // document, instead of silently falling back to the Latin spelling.
+  // row, instead of silently falling back to the Latin spelling.
   heroTitleFa: PERSON.nameFa,
   heroSubtitleFa: "توسعه‌دهنده فرانت‌اند",
   heroDescriptionFa:
@@ -121,8 +110,14 @@ export const DEFAULT_CONTENT: Content = {
     "کارشناسی مهندسی کامپیوتر را تمام کرده‌ام و بعد از آن، کارشناسی ارشد مهندسی نرم‌افزار را در دانشگاه آزاد مشهد خوانده‌ام. اما چیزی که همیشه مرا برمی‌گرداند، مرورگر بود: همان جایی که معلوم می‌شود یک طراحی سرپا می‌ماند یا از هم می‌پاشد. از همان زمان تمرکزم را گذاشتم روی ساختن رابط‌هایی که سریع، دسترس‌پذیر و قابل نگهداری باشند.",
 };
 
-const CONTENT_FIELDS =
-  "heroTitle heroSubtitle heroDescription aboutText contactEmail contactPhone heroTitleFa heroSubtitleFa heroDescriptionFa aboutTextFa updatedAt";
+const CONTENT_COLUMNS = `id, hero_title, hero_subtitle, hero_description, about_text,
+  contact_email, contact_phone, hero_title_fa, hero_subtitle_fa,
+  hero_description_fa, about_text_fa, updated_at`;
+
+const PROJECT_COLUMNS = `id, slug, title, title_fa, description, description_fa,
+  long_description, long_description_fa, role, year, client, image_url,
+  image_placeholder_url, gallery, github_url, project_url, technologies,
+  featured, sort_order, created_at, updated_at`;
 
 /**
  * Empty strings in the Persian variants are normalised to `undefined` so the
@@ -158,13 +153,13 @@ const PERSIAN_FIELDS = {
 
 export const getContent = cache(async (): Promise<Content> =>
   safeRead("content", DEFAULT_CONTENT, async () => {
-    await connectDB();
-    const doc = await ContentModel.findOne()
-      .select(CONTENT_FIELDS)
-      .lean<Content>()
-      .exec();
+    const rows = await query<ContentRow>(
+      `select ${CONTENT_COLUMNS} from contents order by created_at asc limit 1`,
+    );
 
-    if (!doc) return DEFAULT_CONTENT;
+    if (rows.length === 0) return DEFAULT_CONTENT;
+
+    const doc = toContent(rows[0]);
 
     return normalizePersianFields(
       {
@@ -183,88 +178,47 @@ export const getContent = cache(async (): Promise<Content> =>
           DEFAULT_CONTENT.heroDescriptionFa,
         aboutTextFa:
           optionalText(doc.aboutTextFa) ?? DEFAULT_CONTENT.aboutTextFa,
-        updatedAt: toIso(doc.updatedAt),
+        updatedAt: doc.updatedAt,
       } satisfies Content,
       PERSIAN_FIELDS.content,
     );
   }),
 );
 
-/** Date → ISO string, so the serialised shape stays plain JSON. */
-function toIso(value: unknown): string | undefined {
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
-  }
-  return undefined;
-}
-
-/** Drops gallery entries without a usable URL (e.g. an aborted upload). */
-function readGallery(value: unknown): ProjectImage[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((entry) => {
-    const item = entry as Record<string, unknown>;
-    const url = typeof item.url === "string" ? item.url.trim() : "";
-    if (!url) return [];
-    return [
-      {
-        url,
-        placeholder:
-          typeof item.placeholder === "string" ? item.placeholder : undefined,
-      },
-    ];
-  });
-}
-
-/**
- * Projects, with a guaranteed unique slug on every record.
- *
- * The slug is normally persisted by the admin panel, but records created before
- * detail pages existed have none — and a project without a slug would have no
- * page at all. Deriving one here (and de-duplicating with a numeric suffix)
- * means every project is addressable immediately, with no migration step.
- */
 /**
  * Projects, plus whether the read actually succeeded.
  *
  * The grid has a usable fallback (an empty state); the detail route does not.
  * Keeping the flag lets each consumer tell "the owner has no projects yet"
  * apart from "the database is unreachable", which need different answers.
+ *
+ * The slug is normally persisted by the admin panel, but records created before
+ * detail pages existed have none — and a project without a slug would have no
+ * page at all. Deriving one here (and de-duplicating with a numeric suffix)
+ * means every project is addressable immediately, with no migration step.
  */
 const readProjects = cache(
   async (): Promise<{ projects: Project[]; ok: boolean }> => {
     try {
-      await connectDB();
-      const docs = await ProjectModel.find({})
-        .sort({ featured: -1, order: 1, _id: -1 })
-        .lean()
-        .exec();
+      const rows = await query<ProjectRow>(
+        `select ${PROJECT_COLUMNS} from projects
+         order by featured desc, sort_order asc, id desc`,
+      );
 
       const taken = new Set<string>();
 
-      const projects = docs.map((doc) => {
-        const project = toPlain(doc);
-        const stored =
-          typeof project.slug === "string" ? project.slug.trim() : "";
+      const projects = rows.map((row) => {
+        const project = toProject(row);
+        const stored = project.slug.trim();
         const base =
           (stored && slugify(stored)) ||
-          slugify(String(project.title ?? "")) ||
+          slugify(project.title) ||
           `project-${project.id}`;
         const slug = uniqueSlug(base, taken);
         taken.add(slug);
 
         return normalizePersianFields(
-          {
-            ...project,
-            slug,
-            gallery: readGallery(project.gallery),
-            featured: Boolean(project.featured),
-            order: typeof project.order === "number" ? project.order : 0,
-            createdAt: toIso(project.createdAt),
-            updatedAt: toIso(project.updatedAt),
-          } as unknown as Project,
+          { ...project, slug } satisfies Project,
           PERSIAN_FIELDS.project,
         );
       });
@@ -287,7 +241,7 @@ export const getProjects = cache(
  * Resolved from the cached list rather than a query: the collection is small,
  * the list is already in memory for this render pass, and a string comparison
  * cannot be turned into a query operator — which keeps an attacker-supplied
- * slug from ever reaching MongoDB as anything but a plain string.
+ * slug from ever reaching the database as anything but a plain string.
  *
  * A failed read throws rather than returning `undefined`: `undefined` means
  * "this project does not exist", and the route turns that into a 404. If the
@@ -304,46 +258,27 @@ export async function getProjectBySlug(
 
 export const getSkills = cache(async (): Promise<Skill[]> =>
   safeRead("skills", [], async () => {
-    await connectDB();
-    const docs = await SkillModel.find({})
-      .sort({ order: 1, name: 1 })
-      .lean()
-      .exec();
+    const rows = await query<SkillRow>(
+      `select id, name, name_fa, category, level, icon, sort_order
+       from skills order by sort_order asc, name asc`,
+    );
 
-    return docs.map((doc) => {
-      const skill = toPlain(doc);
-      return normalizePersianFields(
-        {
-          ...skill,
-          order: typeof skill.order === "number" ? skill.order : 0,
-        } as unknown as Skill,
-        PERSIAN_FIELDS.skill,
-      );
-    });
+    return rows.map((row) =>
+      normalizePersianFields(toSkill(row), PERSIAN_FIELDS.skill),
+    );
   }),
 );
 
 export const getExperiences = cache(async (): Promise<Experience[]> =>
   safeRead("experiences", [], async () => {
-    await connectDB();
-    const docs = await ExperienceModel.find({})
-      .sort({ order: 1, _id: -1 })
-      .lean()
-      .exec();
+    const rows = await query<ExperienceRow>(
+      `select id, title, company, period, description, technologies, sort_order
+       from experiences order by sort_order asc, id desc`,
+    );
 
-    return docs.map((doc) => {
-      const experience = toPlain(doc);
-      return normalizePersianFields(
-        {
-          ...experience,
-          technologies: Array.isArray(experience.technologies)
-            ? (experience.technologies as string[])
-            : [],
-          order: typeof experience.order === "number" ? experience.order : 0,
-        } as unknown as Experience,
-        PERSIAN_FIELDS.experience,
-      );
-    });
+    return rows.map((row) =>
+      normalizePersianFields(toExperience(row), PERSIAN_FIELDS.experience),
+    );
   }),
 );
 
@@ -366,22 +301,12 @@ export async function getPortfolioData(): Promise<PortfolioData> {
 
 /** Admin-only. Contact form submissions, newest first. */
 export const getMessages = cache(async (): Promise<Message[]> => {
-  await connectDB();
-  const docs = await MessageModel.find({})
-    .sort({ createdAt: -1 })
-    .limit(500)
-    .lean()
-    .exec();
+  const rows = await query<MessageRow>(
+    `select id, name, email, subject, message, read, created_at
+     from messages order by created_at desc limit 500`,
+  );
 
-  return docs.map((doc) => ({
-    id: String(doc._id),
-    name: doc.name,
-    email: doc.email,
-    subject: doc.subject ?? "",
-    message: doc.message,
-    read: Boolean(doc.read),
-    createdAt: new Date(doc.createdAt).toISOString(),
-  }));
+  return rows.map(toMessage);
 });
 
 /**
@@ -396,13 +321,16 @@ export const getAdminAccount = cache(
     const session = await getAdminSession();
     if (!session) return null;
 
-    await connectDB();
-    const user = await UserModel.findById(session.userId)
-      .select("email")
-      .lean()
-      .exec();
+    // A token minted before the migration carries an ObjectId, which Postgres
+    // would reject as a malformed uuid. Treat it as a missing account instead.
+    if (!isValidId(session.userId)) return null;
 
-    if (!user?.email) return null;
-    return { email: user.email };
+    const rows = await query<{ id: string; email: string }>(
+      `select id, email from users where id = $1 limit 1`,
+      [session.userId],
+    );
+
+    if (!rows[0]?.email) return null;
+    return { email: rows[0].email };
   },
 );
