@@ -145,8 +145,8 @@ export function ContactSection({ content, labels, className }: ContactSectionPro
           <div className="flex flex-col gap-5">
             <SectionHeading index="04" title={labels.heading} />
             <h3
-              className="text-safe font-semibold tracking-[-0.02em] text-text"
-              style={{ fontSize: "var(--fs-2)", lineHeight: 1.1 }}
+              className="text-safe font-semibold tracking-[var(--ls-heading)] text-text"
+              style={{ fontSize: "var(--fs-2)", lineHeight: "var(--lh-title)" }}
             >
               {labels.title}
             </h3>
@@ -156,7 +156,7 @@ export function ContactSection({ content, labels, className }: ContactSectionPro
           </div>
 
           <div className="flex flex-col gap-4">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-text-faint">
+            <h4 className="font-mono text-xs uppercase tracking-[var(--ls-eyebrow)] text-text-faint">
               {labels.connectHeading}
             </h4>
             <div className="flex flex-col gap-3">
@@ -181,7 +181,7 @@ export function ContactSection({ content, labels, className }: ContactSectionPro
           </div>
 
           <div className="flex flex-col gap-4">
-            <h4 className="font-mono text-xs uppercase tracking-[0.2em] text-text-faint">
+            <h4 className="font-mono text-xs uppercase tracking-[var(--ls-eyebrow)] text-text-faint">
               {labels.followHeading}
             </h4>
             <div className="flex gap-3">

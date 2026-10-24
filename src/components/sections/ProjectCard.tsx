@@ -155,12 +155,12 @@ export function ProjectCard({ project, index, locale, labels }: ProjectCardProps
           )}
           style={{ transform: "translateZ(20px)" }}
         >
-          <p className="font-mono text-xs tracking-[0.2em] text-accent">
+          <p className="font-mono text-xs tracking-[var(--ls-eyebrow)] text-accent">
             {labels.featured}
           </p>
           <h3
-            className="text-safe font-semibold tracking-[-0.01em] text-text transition-colors duration-200 group-hover:text-accent"
-            style={{ fontSize: "var(--fs-2)", lineHeight: 1.12 }}
+            className="text-safe font-semibold tracking-[var(--ls-title)] text-text transition-colors duration-200 group-hover:text-accent"
+            style={{ fontSize: "var(--fs-2)", lineHeight: "var(--lh-title)" }}
           >
             <Link href={detailHref} className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60">
               {title}

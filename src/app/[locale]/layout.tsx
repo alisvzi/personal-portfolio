@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { Suspense } from "react";
 
 import "../globals.css";
 
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 import RouteProgress from "@/components/layout/RouteProgress";
+import Analytics from "@/components/analytics/Analytics";
 import {
   type Locale,
   directionOf,
@@ -49,6 +51,12 @@ const geistSans = Geist({
  * Geist Mono covers Latin only, so Vazirmatn is appended to the same stack —
  * a Persian label set in `font-mono` then falls through per-glyph to a font
  * that actually has the script, instead of to the browser's default serif.
+ *
+ * The order is fixed up for Persian in `globals.css`: next/font always emits a
+ * `"Geist Mono Fallback"` face built from `local(Arial)` and places it directly
+ * after the real family, which on Windows answers for Arabic script through
+ * font linking — ahead of Vazirmatn. See the `.font-mono` rule under
+ * `[data-locale="fa"]`.
  */
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -57,20 +65,39 @@ const geistMono = Geist_Mono({
 });
 
 /**
- * Persian typeface — Vazirmatn, free under the SIL OFL.
+ * Persian typeface — Vazirmatn, round-dot (RD) cut, self-hosted.
  *
- * It is the reference open-source Persian family: correct Arabic-script
- * shaping and joining, a complete Persian numeral set, and a matching Latin
- * companion so mixed Persian/English copy (the norm for developers) stays on
- * one rhythm. `subsets` includes both scripts for exactly that reason.
+ * The family is free under the SIL OFL (`src/app/fonts/OFL.txt` ships with the
+ * binary). Two deliberate choices:
+ *
+ * 1. **Self-hosted, not `next/font/google`.** The RD cut — the one where the
+ *    dots of ی، ج، ب and friends are drawn round instead of square — is not on
+ *    Google Fonts at all; it only exists in the upstream release. `localFont`
+ *    reads the file at build time and emits the same hashed, preloaded,
+ *    `font-display: swap` output the Google loader would, so nothing is fetched
+ *    from a third party at runtime and there is no layout shift on first paint.
+ *
+ * 2. **The variable cut, one 112 kB file.** It covers 100–900 in a single
+ *    request, which is what lets `font-medium`, `font-semibold` and `font-bold`
+ *    all stay on the Persian family instead of each weight pulling its own
+ *    file. It also carries the Latin companion, so mixed Persian/English copy
+ *    (the norm for developers) keeps one rhythm.
  *
  * `display: "swap"` matters more here than for Latin: a FOIT on Persian text
  * means invisible letterforms, and Persian is the default locale.
  */
-const vazirmatn = Vazirmatn({
+const vazirmatn = localFont({
+  src: "../fonts/Vazirmatn-RD-Variable.woff2",
   variable: "--font-vazirmatn",
-  subsets: ["arabic", "latin"],
+  // Variable axis range — declared so `font-weight` maps onto the axis rather
+  // than the browser synthesising a faux-bold on top of one static instance.
+  weight: "100 900",
+  style: "normal",
   display: "swap",
+  preload: true,
+  // A Persian-capable system stack for the handful of milliseconds before the
+  // file is parsed; `Tahoma` is the one Persian face that exists everywhere.
+  fallback: ["Tahoma", "Segoe UI", "sans-serif"],
 });
 
 export function generateStaticParams() {
@@ -238,6 +265,7 @@ export default async function LocaleLayout({
         */}
         <RouteProgress label={dict.states.loading} />
         {children}
+        <Analytics />
       </body>
     </html>
   );

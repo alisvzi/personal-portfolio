@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowDown, ArrowRight } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import type { Locale } from "@/i18n/config";
@@ -59,24 +59,26 @@ export function HeroSection({
       <div className="chapter-shell grid w-full grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-8">
         {/* Copy */}
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-6">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border-soft bg-surface/50 px-4 py-1.5 font-mono text-xs tracking-[0.2em] text-accent backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface/50 px-4 py-1.5 font-mono text-xs tracking-[var(--ls-eyebrow)] text-accent backdrop-blur-sm">
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-accent"
+              aria-hidden="true"
+            />
             {labels.greeting}
           </span>
 
           <h1
-            className="text-safe font-bold tracking-[-0.03em] text-text"
-            style={{ fontSize: "var(--fs-5)", lineHeight: 0.98 }}
+            className="text-safe font-bold tracking-[var(--ls-display)] text-text"
+            style={{ fontSize: "var(--fs-5)", lineHeight: "var(--lh-display)" }}
           >
-            {title}
+            {title}{" "}
+            <span
+              className="text-safe block font-semibold text-text-muted"
+              style={{ fontSize: "var(--fs-2)", lineHeight: "var(--lh-title)" }}
+            >
+              {subtitle}
+            </span>
           </h1>
-
-          <p
-            className="text-safe font-semibold text-text-muted"
-            style={{ fontSize: "var(--fs-2)", lineHeight: 1.15 }}
-          >
-            {subtitle}
-          </p>
 
           <p
             className="text-safe max-w-xl leading-relaxed text-text-muted"
@@ -91,7 +93,7 @@ export function HeroSection({
               onClick={() => scrollToSection("contact")}
               className={cn(
                 "group inline-flex items-center gap-2.5 rounded-full bg-accent px-7 py-3.5",
-                "font-mono text-sm font-semibold tracking-wide text-bg",
+                "font-mono text-sm font-semibold tracking-[var(--ls-button)] text-bg",
                 "transition-[transform,filter] duration-200 ease-out hover:brightness-95",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
                 "active:scale-[0.97]",
@@ -110,7 +112,7 @@ export function HeroSection({
               rel="noopener noreferrer"
               className={cn(
                 "inline-flex items-center gap-2.5 rounded-full border border-border-strong px-7 py-3.5",
-                "font-mono text-sm tracking-wide text-text",
+                "font-mono text-sm tracking-[var(--ls-button)] text-text",
                 "transition-[background-color,border-color,transform] duration-200 ease-out",
                 "hover:border-accent/50 hover:bg-accent-soft",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
@@ -123,9 +125,12 @@ export function HeroSection({
 
           <div className="flex items-center gap-3 pt-4 text-text-faint">
             <span className="grid h-9 w-9 place-items-center rounded-full border border-border-soft">
-              <ArrowDown className="h-4 w-4 animate-bounce" aria-hidden="true" />
+              <ArrowDown
+                className="h-4 w-4 animate-bounce"
+                aria-hidden="true"
+              />
             </span>
-            <span className="font-mono text-xs tracking-[0.2em]">
+            <span className="font-mono text-xs tracking-[var(--ls-eyebrow)]">
               {labels.scroll}
             </span>
           </div>
@@ -179,7 +184,10 @@ function buildCode(name: string, role: string, stack?: string[]): Token[][] {
     .slice(0, 3)
     .map((item) => `"${item}"`);
 
-  const stackTokens: Token[] = [{ text: "  stack", tone: "prop" }, { text: ": [", tone: "punc" }];
+  const stackTokens: Token[] = [
+    { text: "  stack", tone: "prop" },
+    { text: ": [", tone: "punc" },
+  ];
   tech.forEach((item, index) => {
     if (index > 0) stackTokens.push({ text: ", ", tone: "punc" });
     stackTokens.push({ text: item, tone: "str" });
@@ -291,7 +299,9 @@ function HeroCodeWindow({
   };
 
   const lines = buildCode(name, role, stack);
-  const chips = (stack && stack.length > 0 ? stack : ["React", "Next.js"]).slice(0, 2);
+  const chips = (
+    stack && stack.length > 0 ? stack : ["React", "Next.js"]
+  ).slice(0, 2);
 
   return (
     <div className="relative mx-auto w-full max-w-lg [perspective:1600px]">

@@ -85,6 +85,8 @@ interface StructuredDataInput {
   image?: string;
   /** ISO timestamp of the last content change, when known. */
   dateModified?: string;
+  /** Published projects → `ItemList` so the work section is machine-readable. */
+  projects?: { title: string; slug: string }[];
 }
 
 /**
@@ -114,6 +116,7 @@ export function buildStructuredData({
   worksFor,
   image,
   dateModified,
+  projects,
 }: StructuredDataInput): Record<string, unknown> {
   const url = canonicalFor(locale);
   const personId = personEntityId();
@@ -170,22 +173,39 @@ export function buildStructuredData({
     profilePage.dateModified = dateModified;
   }
 
+  const graph: Record<string, unknown>[] = [
+    profilePage,
+    person,
+    {
+      "@type": "WebSite",
+      "@id": websiteId,
+      url,
+      name,
+      description,
+      inLanguage: htmlLang[locale],
+      about: { "@id": personId },
+      publisher: { "@id": personId },
+    },
+  ];
+
+  if (projects && projects.length > 0) {
+    graph.push({
+      "@type": "ItemList",
+      "@id": `${url}#work`,
+      name: locale === "fa" ? "نمونه‌کارها" : "Work",
+      numberOfItems: projects.length,
+      itemListElement: projects.map((p, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: canonicalFor(locale, projectPath(p.slug)),
+        name: p.title,
+      })),
+    });
+  }
+
   return {
     "@context": "https://schema.org",
-    "@graph": [
-      profilePage,
-      person,
-      {
-        "@type": "WebSite",
-        "@id": websiteId,
-        url,
-        name,
-        description,
-        inLanguage: htmlLang[locale],
-        about: { "@id": personId },
-        publisher: { "@id": personId },
-      },
-    ],
+    "@graph": graph,
   };
 }
 

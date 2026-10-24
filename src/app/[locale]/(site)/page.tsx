@@ -17,11 +17,8 @@ import { buildStructuredData } from "@/lib/seo";
 /**
  * The public portfolio.
  *
- * Rendering is dynamic. The page reads MongoDB on every request, and Next.js
- * cannot track that read as a dependency, so a prerendered build output would
- * silently serve stale content forever after the owner edits a project. The
- * cost is one indexed query set per request; the alternative is a site that
- * does not update.
+ * Revalidated every 5 minutes. Server Actions call `revalidatePath("/", "layout")`
+ * after every edit, so content changes in the admin panel appear immediately.
  *
  * All four collections are fetched once here, in parallel, and passed down as
  * props. The previous structure had five `*Server` wrapper components that each
@@ -29,7 +26,7 @@ import { buildStructuredData } from "@/lib/seo";
  * document — five sequential round trips and four duplicate reads of the same
  * document.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
@@ -83,6 +80,11 @@ export default async function HomePage({
     sameAs: [SOCIAL_LINKS.github, SOCIAL_LINKS.linkedin, SOCIAL_LINKS.twitter],
     knowsAbout,
     worksFor,
+    dateModified: content.updatedAt,
+    projects: projects.map((p) => ({
+      title: localized(locale, p.title, p.titleFa),
+      slug: p.slug,
+    })),
   });
 
   // The hero's code artifact lists the stack; take it from the same managed

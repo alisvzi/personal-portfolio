@@ -8,7 +8,6 @@ import { DEFAULT_CONTENT } from "@/lib/data";
 import { connectDB } from "@/lib/db/mongodb";
 import ContentModel from "@/lib/models/Content";
 import { isEmail } from "@/lib/validation";
-import type { Content } from "@/types";
 
 /**
  * Editing the landing-page copy.
@@ -29,7 +28,7 @@ const EDITABLE_FIELDS = {
   heroSubtitleFa: 160,
   heroDescriptionFa: 600,
   aboutTextFa: 4000,
-} as const satisfies Record<keyof Content, number>;
+} as const satisfies Record<string, number>;
 
 type EditableField = keyof typeof EDITABLE_FIELDS;
 

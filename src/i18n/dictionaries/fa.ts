@@ -3,11 +3,21 @@
  *
  * Written as native Persian rather than a literal translation of the English
  * file: sentences are re-shaped where a word-for-word rendering would read
- * stiffly, and the half-space (ZWNJ, U+200C) is used where Persian orthography
- * requires it (`میشود`, `پروژهها`, `بهزودی`).
+ * stiffly, and the half-space (ZWNJ, U+200C) is used wherever Persian
+ * orthography requires it (`می‌شود`, `پروژه‌ها`, `به‌زودی`).
+ *
+ * Conventions this file follows:
+ *   - Half-space in every compound and prefix: `توسعه‌دهنده فرانت‌اند`,
+ *     `نمونه‌کار`, `بی‌دردسر`, `دسترس‌پذیر`, `سلسله‌مراتب`.
+ *   - Persian punctuation, never the Latin one: `،` `؛` `:` `؟` and `«»`
+ *     for quotations. `٫` is not used; numbers stay as typed.
+ *   - No `!`, no exclamation-style enthusiasm, no emoji: the register is a
+ *     colleague describing work, not a brochure.
+ *   - Verbs are active and specific. "می‌سازم" beats "ساخته می‌شود";
+ *     "در اولین فرصت پاسخ می‌دهم" beats "منتظر شنیدن صدای شما هستیم".
  *
  * Glossary for shared domain terms (kept consistent across the app):
- *   front-end developer → توسعهدهنده فرانتاند
+ *   front-end developer → توسعه‌دهنده فرانت‌اند
  *   project             → پروژه
  *   skill               → مهارت
  *   experience          → سابقه کاری
@@ -23,19 +33,19 @@ const fa = {
   meta: {
     siteName: "علی سویزی",
     role: "توسعه‌دهنده فرانت‌اند",
-    homeTitle: "علی سویزی — توسعهدهنده فرانتاند",
+    homeTitle: "علی سویزی — توسعه‌دهنده فرانت‌اند",
     homeDescription:
-      "نمونهکارهای علی سویزی، توسعهدهنده فرانتاند که رابطهای وب سریع و دسترسپذیر با React، Next.js و TypeScript میسازد.",
+      "نمونه‌کارهای علی سویزی، توسعه‌دهنده فرانت‌اند که رابط‌های وب سریع و دسترس‌پذیر را با React، Next.js و TypeScript می‌سازد.",
     keywords: [
       "علی سویزی",
-      "توسعهدهنده فرانتاند",
-      "برنامهنویس ریاکت",
+      "توسعه‌دهنده فرانت‌اند",
+      "برنامه‌نویس ری‌اکت",
       "Next.js",
       "TypeScript",
       "طراحی وب",
-      "نمونهکار",
+      "نمونه‌کار",
     ],
-    ogImageAlt: "علی سویزی — توسعهدهنده فرانتاند",
+    ogImageAlt: "علی سویزی — توسعه‌دهنده فرانت‌اند",
     adminTitle: "پنل مدیریت",
     loginTitle: "ورود",
   },
@@ -46,57 +56,56 @@ const fa = {
   },
 
   nav: {
-    label: "پیمایش بخشها",
+    label: "پیمایش بخش‌ها",
     home: "خانه",
     about: "درباره من",
     experience: "سابقه کاری",
-    work: "نمونهکارها",
+    work: "نمونه‌کارها",
     contact: "تماس",
     navigateTo: "رفتن به بخش {section}",
   },
 
   hero: {
     greeting: "سلام، من",
-    getInTouch: "تماس بگیرید",
-    downloadResume: "دانلود رزومه",
-    scroll: "برای دیدن ادامه اسکرول کنید",
+    getInTouch: "تماس با من",
+    downloadResume: "دریافت رزومه",
+    scroll: "برای ادامه اسکرول کنید",
   },
 
   about: {
     heading: "درباره من",
     paragraph2:
-      "برای جزئیاتی که یک رابط را بیدردسر میکنند اهمیت قائلم: سلسلهمراتب بصری روشن، تعامل دسترسپذیر، و کاراییای که روی یک اتصال کند هم دوام بیاورد. وقتی پشت کیبورد نیستم، درباره طراحی میخوانم، به پروژههای متنباز مشارکت میکنم، و هر چیزی که به کارم اضافه شود یاد میگیرم.",
-    skillsTitle: "جعبه‌ابزار من",
+      "به جزئیاتی اهمیت می‌دهم که باعث می‌شوند یک رابط بی‌دردسر کار کند: سلسله‌مراتب بصری روشن، تعامل دسترس‌پذیر و سرعتی که روی اینترنت کند هم دوام بیاورد. در وقت‌های آزاد درباره‌ی طراحی می‌خوانم، به پروژه‌های متن‌باز کمک می‌کنم و ابزارهای تازه را امتحان می‌کنم.",
+    skillsTitle: "مهارت‌ها و ابزارها",
     skillsSubtitle:
-      "همان چیزی که در فهرست مهارت‌هایم ثبت شده؛ ابزارهایی که برای رساندن یک پروژه به مرحله انتشار انتخاب می‌کنم.",
+      "ابزارهایی که برای رساندن یک پروژه تا مرحله‌ی انتشار انتخاب می‌کنم.",
     skillCategories: {
       frontend: "فرانت‌اند",
       backend: "بک‌اند",
-      database: "داده",
+      database: "پایگاه داده",
       devops: "دواپس",
       mobile: "موبایل",
       design: "طراحی",
-      other: "دیگر",
+      other: "سایر",
     },
-    availabilityFreelance: "آماده همکاری پروژهای",
+    availabilityFreelance: "آماده همکاری پروژه‌ای",
     availabilityCollaboration: "آماده همکاری مشترک",
     photoAlt: "تصویر {name}",
   },
 
   experience: {
-    heading: "سابقه کاری من",
-    empty: "هنوز سابقهای ثبت نشده است.",
+    heading: "سابقه کاری",
+    empty: "هنوز سابقه کاری ثبت نشده است.",
     at: "در {company}",
   },
 
   work: {
-    heading: "چند نمونه از کارهای من",
+    heading: "پروژه‌های منتخب",
     featured: "پروژه شاخص",
-    otherHeading: "پروژههای دیگر",
-    otherDescription: "گزیدهای از پروژههای دیگری که روی آنها کار کردهام",
-    emptyTitle: "پروژهها بهزودی",
-    emptyDescription:
-      "در حال کار روی چند پروژه تازه هستم. بهزودی سر بزنید تا ببینید چه ساختهام.",
+    otherHeading: "سایر پروژه‌ها",
+    otherDescription: "گزیده‌ای از سایر پروژه‌هایی که در آن‌ها نقش داشته‌ام.",
+    emptyTitle: "پروژه‌های تازه در راه است",
+    emptyDescription: "چند پروژه تازه در دست کار است؛ به‌زودی دوباره سر بزنید.",
     repository: "کد منبع {title}",
     liveSite: "نسخه آنلاین {title}",
     caseStudy: "مطالعه موردی",
@@ -104,7 +113,7 @@ const fa = {
   },
 
   project: {
-    backToWork: "همه نمونه‌کارها",
+    backToWork: "بازگشت به نمونه‌کارها",
     navigation: "پیمایش پروژه‌ها",
     overview: "درباره پروژه",
     details: "مشخصات پروژه",
@@ -124,37 +133,38 @@ const fa = {
 
   contact: {
     heading: "تماس با من",
-    title: "بیایید با هم کار کنیم",
+    title: "بیایید درباره پروژه شما صحبت کنیم",
     description:
-      "همیشه خوشحال میشوم درباره فرصتهای تازه بشنوم؛ چه یک موقعیت تماموقت، چه همکاری پروژهای، و چه فقط یک گفتوگو درباره تکنولوژی.",
-    connectHeading: "راههای ارتباطی",
+      "اگر به دنبال همکاری تمام‌وقت، همکاری پروژه‌ای یا گفت‌وگو درباره یک ایده فنی هستید، خوشحال می‌شوم جزئیات را بشنوم. در اولین فرصت پاسخ می‌دهم.",
+    connectHeading: "راه‌های ارتباطی",
     emailLabel: "ایمیل",
     phoneLabel: "تلفن",
     locationLabel: "موقعیت مکانی",
     location: "مشهد، ایران",
-    followHeading: "من را دنبال کنید",
-    resumePrompt: "دنبال رزومه من هستید؟",
-    downloadResume: "دانلود رزومه",
+    followHeading: "شبکه‌های اجتماعی",
+    resumePrompt: "برای مطالعه سابقه کامل",
+    downloadResume: "دریافت رزومه",
     form: {
       name: "نام",
-      namePlaceholder: "نام شما",
+      namePlaceholder: "نام و نام خانوادگی",
       email: "ایمیل",
       emailPlaceholder: "you@example.com",
       subject: "موضوع",
-      subjectPlaceholder: "درباره چه چیزی است؟",
+      subjectPlaceholder: "موضوع پیام",
       message: "پیام",
-      messagePlaceholder: "از پروژهتان بگویید، یا فقط سلام کنید.",
+      messagePlaceholder:
+        "درباره پروژه، بازه زمانی و بودجه مورد نظرتان بنویسید.",
       submit: "ارسال پیام",
       submitting: "در حال ارسال…",
-      successTitle: "پیام ارسال شد",
-      successBody: "ممنون که پیام دادید. در اولین فرصت پاسخ میدهم.",
+      successTitle: "پیام شما ارسال شد",
+      successBody: "از این‌که نوشتید سپاسگزارم. در اولین فرصت پاسخ می‌دهم.",
       sendAnother: "ارسال پیام دیگر",
     },
     errors: {
       nameRequired: "لطفاً نام خود را وارد کنید.",
-      emailRequired: "لطفاً ایمیل خود را وارد کنید.",
-      emailInvalid: "لطفاً یک ایمیل معتبر وارد کنید.",
-      subjectRequired: "لطفاً موضوع را وارد کنید.",
+      emailRequired: "لطفاً نشانی ایمیل خود را وارد کنید.",
+      emailInvalid: "لطفاً یک نشانی ایمیل معتبر وارد کنید.",
+      subjectRequired: "لطفاً موضوع پیام را وارد کنید.",
       messageRequired: "لطفاً متن پیام را وارد کنید.",
       sendFailed: "ارسال پیام انجام نشد. لطفاً دوباره تلاش کنید.",
     },
@@ -162,26 +172,27 @@ const fa = {
 
   states: {
     loading: "در حال بارگذاری…",
-    loadingPortfolio: "در حال بارگذاری نمونهکارها…",
-    errorTitle: "مشکلی پیش آمد",
+    loadingPortfolio: "در حال بارگذاری نمونه‌کارها…",
+    errorTitle: "خطایی رخ داد",
     errorBody:
-      "بارگذاری این صفحه ممکن نشد. لطفاً دوباره تلاش کنید؛ اگر مشکل ادامه داشت، کمی بعد سر بزنید.",
+      "بارگذاری این صفحه انجام نشد. لطفاً دوباره تلاش کنید؛ اگر مشکل ادامه داشت، کمی بعد مراجعه کنید.",
     retry: "تلاش دوباره",
     notFoundTitle: "صفحه پیدا نشد",
-    notFoundBody: "صفحهای که دنبالش هستید وجود ندارد یا جابهجا شده است.",
+    notFoundBody: "صفحه‌ای که به دنبال آن هستید وجود ندارد یا جابه‌جا شده است.",
     backHome: "بازگشت به صفحه اصلی",
   },
 
   login: {
     title: "ورود مدیر",
-    subtitle: "برای مدیریت محتوای نمونهکار وارد شوید.",
+    subtitle: "برای مدیریت محتوای سایت وارد شوید.",
     email: "ایمیل",
     password: "رمز عبور",
     submit: "ورود",
     submitting: "در حال ورود…",
     errors: {
       emailPasswordRequired: "ایمیل و رمز عبور الزامی است.",
-      tooManyAttempts: "تلاشهای بیش از حد. لطفاً {seconds} ثانیه دیگر دوباره تلاش کنید.",
+      tooManyAttempts:
+        "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً {seconds} ثانیه دیگر دوباره تلاش کنید.",
       invalidCredentials: "ایمیل یا رمز عبور نادرست است.",
       unavailable: "ورود موقتاً در دسترس نیست.",
     },
@@ -191,11 +202,12 @@ const fa = {
     title: "پنل مدیریت",
     logout: "خروج",
     tabs: {
-      projects: "پروژهها",
-      skills: "مهارتها",
+      projects: "پروژه‌ها",
+      skills: "مهارت‌ها",
       experiences: "سابقه کاری",
       content: "محتوای سایت",
-      messages: "پیامها",
+      messages: "پیام‌ها",
+      account: "حساب کاربری",
     },
     actions: {
       add: "افزودن",
@@ -204,14 +216,14 @@ const fa = {
       save: "ذخیره",
       saving: "در حال ذخیره…",
       cancel: "انصراف",
-      markAsRead: "علامتگذاری بهعنوان خواندهشده",
+      markAsRead: "علامت‌گذاری به‌عنوان خوانده‌شده",
     },
     errors: {
-      loadFailed: "بارگذاری این اطلاعات ممکن نشد.",
-      saveFailed: "ذخیره تغییرات ممکن نشد.",
-      deleteFailed: "حذف این مورد ممکن نشد.",
-      unexpected: "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
-      unauthorized: "برای انجام این کار باید بهعنوان مدیر وارد شوید.",
+      loadFailed: "بارگذاری این اطلاعات انجام نشد.",
+      saveFailed: "ذخیره تغییرات انجام نشد.",
+      deleteFailed: "حذف این مورد انجام نشد.",
+      unexpected: "خطایی رخ داد. لطفاً دوباره تلاش کنید.",
+      unauthorized: "برای انجام این کار باید به‌عنوان مدیر وارد شوید.",
       idRequired: "شناسه این مورد لازم است.",
       notFound: "این مورد دیگر وجود ندارد.",
       titleRequired: "عنوان الزامی است.",
@@ -220,27 +232,36 @@ const fa = {
       descriptionTooLong: "توضیحات بیش از حد طولانی است.",
       technologiesRequired: "حداقل یک تکنولوژی لازم است.",
       projectUrlInvalid: "نشانی پروژه باید یک آدرس معتبر http(s) باشد.",
-      githubUrlInvalid: "نشانی گیتهاب باید یک آدرس معتبر http(s) باشد.",
-      imageEmpty: "فایل انتخابشده خالی است.",
+      githubUrlInvalid: "نشانی گیت‌هاب باید یک آدرس معتبر http(s) باشد.",
+      imageEmpty: "فایل انتخاب‌شده خالی است.",
       imageTooLarge: "حجم تصویر باید کمتر از {megabytes} مگابایت باشد.",
-      imageUnsupported: "قالب تصویر پشتیبانی نمیشود. از JPEG، PNG، WebP یا AVIF استفاده کنید.",
+      imageUnsupported:
+        "قالب تصویر پشتیبانی نمی‌شود. از JPEG، PNG، WebP یا AVIF استفاده کنید.",
       imageUnreadable:
-        "این فایل بهعنوان تصویر خوانده نشد. لطفاً یک فایل JPEG، PNG، WebP یا AVIF بارگذاری کنید.",
+        "این فایل به‌عنوان تصویر خوانده نشد. لطفاً یک فایل JPEG، PNG، WebP یا AVIF بارگذاری کنید.",
       nameRequired: "نام مهارت الزامی است.",
       nameTooLong: "نام مهارت بیش از حد طولانی است.",
       nameFaTooLong: "نام فارسی بیش از حد طولانی است.",
-      categoryTooLong: "دستهبندی بیش از حد طولانی است.",
+      categoryTooLong: "دسته‌بندی بیش از حد طولانی است.",
       experienceFieldsRequired:
-        "عنوان شغلی، شرکت، بازه زمانی، توضیحات و تکنولوژیها همه الزامی هستند.",
+        "عنوان شغلی، شرکت، بازه زمانی، توضیحات و تکنولوژی‌ها همه الزامی هستند.",
       roleCompanyTooLong: "عنوان شغلی یا نام شرکت بیش از حد طولانی است.",
       periodTooLong: "بازه زمانی بیش از حد طولانی است.",
       unknownField: "فیلد محتوای ناشناخته.",
       valueRequired: "مقدار الزامی است.",
       valueTooLong: "این مقدار بیش از حد طولانی است.",
       emailInvalid: "یک ایمیل معتبر وارد کنید.",
-      slugInvalid: "نشانی پروژه فقط می‌تواند شامل حروف کوچک لاتین، عدد و خط تیره باشد.",
+      slugInvalid:
+        "نشانی پروژه فقط می‌تواند شامل حروف کوچک لاتین، عدد و خط تیره باشد.",
       yearInvalid: "سال باید چهار رقم باشد؛ مثلاً ۲۰۲۴.",
       galleryTooMany: "حداکثر می‌توانید {max} تصویر برای گالری اضافه کنید.",
+      currentPasswordRequired: "رمز عبور فعلی را وارد کنید.",
+      currentPasswordInvalid: "رمز عبور فعلی نادرست است.",
+      passwordTooShort: "رمز عبور جدید باید حداقل {min} کاراکتر باشد.",
+      passwordMismatch: "دو رمز عبور واردشده یکسان نیستند.",
+      emailTaken: "این ایمیل پیش‌تر برای حساب دیگری ثبت شده است.",
+      tooManyAttempts:
+        "تعداد تلاش‌ها بیش از حد مجاز است. لطفاً {seconds} ثانیه دیگر دوباره تلاش کنید.",
     },
     confirm: {
       deleteProject: "این پروژه حذف شود؟ این کار قابل بازگشت نیست.",
@@ -249,20 +270,22 @@ const fa = {
       deleteMessage: "این پیام حذف شود؟ این کار قابل بازگشت نیست.",
     },
     projects: {
-      heading: "پروژهها",
+      heading: "پروژه‌ها",
       addTitle: "افزودن پروژه",
       editTitle: "ویرایش پروژه",
-      loading: "در حال بارگذاری پروژهها…",
+      loading: "در حال بارگذاری پروژه‌ها…",
       saveLabel: "ذخیره پروژه",
       title: "عنوان",
       titleFa: "عنوان (فارسی)",
       slug: "نشانی صفحه (slug)",
-      slugHint: "خالی بگذارید تا از روی عنوان ساخته شود. فقط حروف کوچک لاتین، عدد و خط تیره.",
+      slugHint:
+        "خالی بگذارید تا از روی عنوان ساخته شود. فقط حروف کوچک لاتین، عدد و خط تیره.",
       description: "توضیحات",
       descriptionFa: "توضیحات (فارسی)",
       longDescription: "متن مطالعه موردی",
       longDescriptionFa: "متن مطالعه موردی (فارسی)",
-      longDescriptionHint: "هر پاراگراف را با یک خط خالی جدا کنید. در صفحه پروژه نمایش داده می‌شود.",
+      longDescriptionHint:
+        "هر پاراگراف را با یک خط خالی جدا کنید. در صفحه پروژه نمایش داده می‌شود.",
       role: "نقش من",
       year: "سال",
       client: "کارفرما",
@@ -270,33 +293,34 @@ const fa = {
       image: "تصویر",
       imageHint: "JPEG، PNG، WebP یا AVIF، حداکثر ۸ مگابایت.",
       gallery: "تصاویر گالری",
-      galleryHint: "JPEG، PNG، WebP یا AVIF، هر تصویر حداکثر ۸ مگابایت و در مجموع ۸ تصویر.",
+      galleryHint:
+        "JPEG، PNG، WebP یا AVIF، هر تصویر حداکثر ۸ مگابایت و در مجموع ۸ تصویر.",
       galleryExisting: "گالری فعلی",
       galleryRemove: "حذف",
       galleryEmpty: "هنوز تصویری در گالری نیست.",
       projectUrl: "نشانی نسخه آنلاین",
       githubUrl: "نشانی کد منبع",
-      technologies: "تکنولوژیها (با کاما جدا کنید)",
+      technologies: "تکنولوژی‌ها (با کاما جدا کنید)",
       featured: "پروژه شاخص",
       order: "ترتیب نمایش",
       featuredBadge: "شاخص",
       orderLabel: "ترتیب: {order}",
-      empty: "هنوز پروژهای ثبت نشده است. اولین پروژه را اضافه کنید.",
+      empty: "هنوز پروژه‌ای ثبت نشده است. اولین پروژه را اضافه کنید.",
     },
     skills: {
-      heading: "مهارتها",
+      heading: "مهارت‌ها",
       toolboxHint:
-        "همین مهارت‌ها در کارت «جعبه‌ابزار من» صفحه‌ی اصلی نمایش داده می‌شوند. دسته‌بندی، گروه را تعیین می‌کند؛ ترتیب نمایش، جای هر مهارت را؛ و سطح، نوار کوچک زیر آن را.",
+        "همین مهارت‌ها در کارت «مهارت‌ها و ابزارها» صفحه اصلی نمایش داده می‌شوند. دسته‌بندی، گروه هر مهارت را تعیین می‌کند؛ ترتیب نمایش، جای آن را؛ و سطح، نوار کوچک زیر نامش را.",
       addTitle: "افزودن مهارت",
       editTitle: "ویرایش مهارت",
-      loading: "در حال بارگذاری مهارتها…",
+      loading: "در حال بارگذاری مهارت‌ها…",
       saveLabel: "ذخیره مهارت",
       name: "نام",
       nameFa: "نام (فارسی)",
-      category: "دستهبندی",
+      category: "دسته‌بندی",
       level: "سطح",
       levelLabel: "سطح مهارت: {level}٪",
-      selectCategory: "انتخاب دستهبندی",
+      selectCategory: "انتخاب دسته‌بندی",
       icon: "آیکون",
       order: "ترتیب نمایش",
       orderLabel: "ترتیب: {order}",
@@ -312,10 +336,10 @@ const fa = {
       company: "شرکت",
       period: "بازه زمانی",
       description: "توضیحات",
-      technologies: "تکنولوژیها (با کاما جدا کنید)",
+      technologies: "تکنولوژی‌ها (با کاما جدا کنید)",
       order: "ترتیب نمایش",
       orderLabel: "ترتیب: {order}",
-      empty: "هنوز سابقهای ثبت نشده است.",
+      empty: "هنوز سابقه کاری ثبت نشده است.",
     },
     content: {
       heading: "محتوای سایت",
@@ -328,11 +352,25 @@ const fa = {
       contactEmail: "ایمیل تماس",
       contactPhone: "تلفن تماس",
     },
+    account: {
+      heading: "حساب کاربری",
+      description:
+        "ایمیل و رمز عبوری که با آن‌ها وارد پنل می‌شوید. این اطلاعات جدا از محتوای سایت ذخیره می‌شود.",
+      email: "ایمیل ورود",
+      currentPassword: "رمز عبور فعلی",
+      newPassword: "رمز عبور جدید",
+      confirmPassword: "تکرار رمز عبور جدید",
+      passwordHint:
+        "حداقل {min} کاراکتر. برای نگه‌داشتن رمز فعلی، هر دو فیلد رمز جدید را خالی بگذارید.",
+      save: "ذخیره تغییرات",
+      saving: "در حال ذخیره…",
+      success: "اطلاعات حساب به‌روز شد.",
+    },
     messages: {
-      heading: "پیامها",
-      loading: "در حال بارگذاری پیامها…",
+      heading: "پیام‌ها",
+      loading: "در حال بارگذاری پیام‌ها…",
       total: "کل: {count}",
-      unread: "خواندهنشده: {count}",
+      unread: "خوانده‌نشده: {count}",
       empty: "هنوز پیامی دریافت نشده است.",
       newBadge: "جدید",
     },

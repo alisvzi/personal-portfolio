@@ -31,11 +31,10 @@ import type { Project } from "@/types";
  * and would fight a long-form article. The page therefore brings its own
  * backdrop and keeps the global language switcher from the locale layout.
  *
- * Rendering is dynamic for the same reason as the landing page — the content
- * comes from MongoDB, and a prerendered build output would serve stale copy
- * forever after an edit.
+ * Revalidated every 5 minutes. Server Actions call `revalidatePath` on save,
+ * so edits in the admin panel appear immediately.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -72,10 +71,7 @@ export async function generateMetadata({
 
   const project = await getProjectBySlug(safeDecode(slug));
   if (!project) {
-    return {
-      title: getDictionary(locale).states.notFoundTitle,
-      robots: { index: false, follow: false },
-    };
+    notFound();
   }
 
   const dict = getDictionary(locale);
@@ -111,6 +107,11 @@ export async function generateMetadata({
       description,
       url: canonical,
       images: [{ url: cover, alt: title }],
+      publishedTime: project.createdAt,
+      modifiedTime: project.updatedAt,
+      authors: [PERSON.nameEn],
+      section: "Case study",
+      tags: technologies,
     },
     twitter: {
       card: "summary_large_image",
@@ -241,13 +242,13 @@ export default async function ProjectPage({ params }: PageProps) {
           </ol>
         </nav>
 
-        <p className="font-mono text-xs tracking-[0.2em] text-accent">
+        <p className="font-mono text-xs tracking-[var(--ls-eyebrow)] text-accent">
           {dict.work.caseStudy}
         </p>
 
         <h1
-          className="text-safe mt-3 font-bold tracking-[-0.03em] text-text"
-          style={{ fontSize: "var(--fs-4)", lineHeight: 1.02 }}
+          className="text-safe mt-3 font-bold tracking-[var(--ls-display)] text-text"
+          style={{ fontSize: "var(--fs-4)", lineHeight: "var(--lh-display)" }}
         >
           {title}
         </h1>
@@ -298,7 +299,7 @@ export default async function ProjectPage({ params }: PageProps) {
         <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-10">
           {/* Case study */}
           <article className="min-w-0 lg:col-span-8">
-            <h2 className="mb-5 font-mono text-xs tracking-[0.2em] text-text-faint uppercase">
+            <h2 className="mb-5 font-mono text-xs tracking-[var(--ls-eyebrow)] text-text-faint uppercase">
               {labels.overview}
             </h2>
 
@@ -320,7 +321,7 @@ export default async function ProjectPage({ params }: PageProps) {
 
             {gallery.length > 0 && (
               <section className="mt-14">
-                <h2 className="mb-5 font-mono text-xs tracking-[0.2em] text-text-faint uppercase">
+                <h2 className="mb-5 font-mono text-xs tracking-[var(--ls-eyebrow)] text-text-faint uppercase">
                   {labels.gallery}
                 </h2>
                 <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -354,7 +355,7 @@ export default async function ProjectPage({ params }: PageProps) {
           {/* Facts */}
           <aside className="min-w-0 lg:col-span-4">
             <div className="rounded-xl border border-border-soft bg-surface/60 p-6 backdrop-blur-sm">
-              <h2 className="mb-4 font-mono text-xs tracking-[0.2em] text-text-faint uppercase">
+              <h2 className="mb-4 font-mono text-xs tracking-[var(--ls-eyebrow)] text-text-faint uppercase">
                 {labels.details}
               </h2>
 
@@ -370,7 +371,7 @@ export default async function ProjectPage({ params }: PageProps) {
               )}
 
               <div className="pt-5">
-                <p className="mb-3 font-mono text-xs tracking-[0.2em] text-text-faint uppercase">
+                <p className="mb-3 font-mono text-xs tracking-[var(--ls-eyebrow)] text-text-faint uppercase">
                   {labels.stack}
                 </p>
                 <ul className="flex flex-wrap gap-2">
@@ -424,7 +425,7 @@ function ProjectNeighbour({
         isNext ? "sm:items-end sm:text-end" : ""
       }`}
     >
-      <span className="inline-flex items-center gap-2 font-mono text-[0.65rem] tracking-[0.18em] text-text-faint uppercase">
+      <span className="inline-flex items-center gap-2 font-mono text-[0.65rem] tracking-[var(--ls-label)] text-text-faint uppercase">
         {!isNext && <ArrowLeft className="h-3 w-3 rtl:rotate-180" aria-hidden="true" />}
         {label}
         {isNext && <ArrowRight className="h-3 w-3 rtl:rotate-180" aria-hidden="true" />}

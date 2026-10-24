@@ -142,8 +142,8 @@ function OtherCard({
       </div>
 
       <h4
-        className="text-safe font-semibold text-text transition-colors duration-200 group-hover:text-accent"
-        style={{ fontSize: "var(--fs-1)", lineHeight: 1.2 }}
+        className="text-safe min-w-0 font-semibold text-text transition-colors duration-200 group-hover:text-accent"
+        style={{ fontSize: "var(--fs-1)", lineHeight: "var(--lh-title)" }}
       >
         <Link
           href={detailHref}

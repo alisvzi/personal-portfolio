@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { locales } from "@/i18n/config";
-import { getProjects } from "@/lib/data";
+import { getContent, getProjects } from "@/lib/data";
 import { siteUrl } from "@/lib/env";
 import { localeAlternates, projectPath } from "@/lib/seo";
 
@@ -20,15 +20,18 @@ import { localeAlternates, projectPath } from "@/lib/seo";
  * better than none, and the landing pages are the ones that must always be
  * discoverable.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const languages = localeAlternates().languages;
 
+  const content = await getContent().catch(() => null);
+  const contentUpdatedAt = content?.updatedAt;
+
   const landingPages: MetadataRoute.Sitemap = locales.map((locale) => ({
     url: `${base}/${locale}`,
-    lastModified: new Date(),
+    lastModified: contentUpdatedAt ? new Date(contentUpdatedAt) : undefined,
     changeFrequency: "monthly",
     priority: locale === "fa" ? 1 : 0.9,
     alternates: { languages },
@@ -42,17 +45,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     projectEntries = projects.flatMap((project) => {
       const path = projectPath(project.slug);
       const alternates = localeAlternates(path).languages;
-      const lastModified = project.updatedAt
-        ? new Date(project.updatedAt)
-        : new Date();
+      const projectDate = project.updatedAt || project.createdAt;
+      const lastModified =
+        contentUpdatedAt && projectDate
+          ? new Date(
+              Math.max(
+                new Date(contentUpdatedAt).getTime(),
+                new Date(projectDate).getTime(),
+              ),
+            )
+          : contentUpdatedAt
+            ? new Date(contentUpdatedAt)
+            : projectDate
+              ? new Date(projectDate)
+              : undefined;
 
-      return locales.map((locale) => ({
-        url: `${base}/${locale}${path}`,
-        lastModified,
-        changeFrequency: "monthly" as const,
-        priority: project.featured ? 0.8 : 0.6,
-        alternates: { languages: alternates },
-      }));
+      return locales.map((locale) => {
+        const entry: MetadataRoute.Sitemap[number] = {
+          url: `${base}/${locale}${path}`,
+          lastModified,
+          changeFrequency: "monthly" as const,
+          priority: project.featured ? 0.8 : 0.6,
+          alternates: { languages: alternates },
+        };
+
+        if (project.imageUrl) {
+          const imageUrl = project.imageUrl.startsWith("http")
+            ? project.imageUrl
+            : `${base}${project.imageUrl}`;
+          entry.images = [imageUrl];
+        }
+
+        return entry;
+      });
     });
   } catch (error) {
     console.error("[sitemap] Could not read projects:", error);

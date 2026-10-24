@@ -19,4 +19,5 @@ export interface AdminLabels {
   experiences: Dictionary["admin"]["experiences"];
   content: Dictionary["admin"]["content"];
   messages: Dictionary["admin"]["messages"];
+  account: Dictionary["admin"]["account"];
 }

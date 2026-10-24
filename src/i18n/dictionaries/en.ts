@@ -192,6 +192,7 @@ const en = {
       experiences: "Experience",
       content: "Content",
       messages: "Messages",
+      account: "Account",
     },
     actions: {
       add: "Add",
@@ -238,6 +239,13 @@ const en = {
         "The slug may only contain lowercase Latin letters, numbers and single dashes.",
       yearInvalid: "The year must be four digits, for example 2024.",
       galleryTooMany: "You can attach at most {max} gallery images.",
+      currentPasswordRequired: "Enter your current password.",
+      currentPasswordInvalid: "The current password is not correct.",
+      passwordTooShort: "The new password must be at least {min} characters.",
+      passwordMismatch: "The two passwords do not match.",
+      emailTaken: "That e-mail is already used by another account.",
+      tooManyAttempts:
+        "Too many attempts. Please try again in {seconds} seconds.",
     },
     confirm: {
       deleteProject: "Delete this project? This cannot be undone.",
@@ -327,6 +335,20 @@ const en = {
       aboutText: "About text",
       contactEmail: "Contact email",
       contactPhone: "Contact phone",
+    },
+    account: {
+      heading: "Account",
+      description:
+        "The e-mail and password you sign in to this dashboard with. They are stored separately from the site content.",
+      email: "Sign-in e-mail",
+      currentPassword: "Current password",
+      newPassword: "New password",
+      confirmPassword: "Repeat new password",
+      passwordHint:
+        "At least {min} characters. Leave both password fields empty to keep the current password.",
+      save: "Update credentials",
+      saving: "Saving…",
+      success: "Your credentials were updated.",
     },
     messages: {
       heading: "Messages",

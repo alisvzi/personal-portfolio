@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { logoutAdmin } from "@/app/actions/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Locale } from "@/i18n/config";
+import AccountPanel from "./AccountPanel";
 import ContentPanel from "./ContentPanel";
 import ExperiencePanel from "./ExperiencePanel";
 import MessagesPanel from "./MessagesPanel";
@@ -14,6 +15,8 @@ import type { AdminLabels } from "./types";
 
 interface AdminLayoutProps {
   locale: Locale;
+  /** Sign-in address, shown pre-filled in the account tab. */
+  currentEmail: string;
   labels: AdminLabels;
 }
 
@@ -24,7 +27,11 @@ interface AdminLayoutProps {
  * its chrome follows the language the owner is browsing in, and every panel
  * receives the same `labels` object so error messages agree across tabs.
  */
-export default function AdminLayout({ locale, labels }: AdminLayoutProps) {
+export default function AdminLayout({
+  locale,
+  currentEmail,
+  labels,
+}: AdminLayoutProps) {
   return (
     <div className="container mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
@@ -40,12 +47,13 @@ export default function AdminLayout({ locale, labels }: AdminLayoutProps) {
       </div>
 
       <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="mb-8 grid grid-cols-5">
+        <TabsList className="mb-8 grid grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="projects">{labels.tabs.projects}</TabsTrigger>
           <TabsTrigger value="skills">{labels.tabs.skills}</TabsTrigger>
           <TabsTrigger value="experiences">{labels.tabs.experiences}</TabsTrigger>
           <TabsTrigger value="content">{labels.tabs.content}</TabsTrigger>
           <TabsTrigger value="messages">{labels.tabs.messages}</TabsTrigger>
+          <TabsTrigger value="account">{labels.tabs.account}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects">
@@ -66,6 +74,10 @@ export default function AdminLayout({ locale, labels }: AdminLayoutProps) {
 
         <TabsContent value="messages">
           <MessagesPanel locale={locale} labels={labels} />
+        </TabsContent>
+
+        <TabsContent value="account">
+          <AccountPanel currentEmail={currentEmail} labels={labels} />
         </TabsContent>
       </Tabs>
     </div>

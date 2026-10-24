@@ -204,7 +204,7 @@ export function AboutSection({
               <div className="relative space-y-5">
                 {groups.map((group) => (
                   <div key={group.key} className="space-y-2.5">
-                    <p className="font-mono text-[0.62rem] tracking-[0.18em] text-text-faint uppercase">
+                    <p className="font-mono text-[0.62rem] tracking-[var(--ls-label)] text-text-faint uppercase">
                       {group.label}
                     </p>
                     <ul className="flex flex-wrap gap-2">

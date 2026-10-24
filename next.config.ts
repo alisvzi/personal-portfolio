@@ -59,6 +59,17 @@ const nextConfig: NextConfig = {
 
   experimental: {
     /**
+     * Opt in to Next.js's automated security upgrades.
+     *
+     * "security" limits the upgrade channel to patch releases that address
+     * published advisories, so a routine `npm install` cannot silently pull in
+     * a feature change. This project pins `next` to an exact version and
+     * deploys from `main`, so without this flag a new advisory only reaches
+     * production when someone remembers to bump it by hand.
+     */
+    agentUpgrade: "security",
+
+    /**
      * Rewrite barrel-file imports into per-module paths at build time.
      *
      * `lucide-react` and `framer-motion` both ship a single index that
@@ -157,6 +168,14 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: "default-src 'none'; img-src 'self'; sandbox",
           },
+        ],
+      },
+      {
+        // Defence in depth: robots.txt already blocks /api, but a crawler that
+        // ignores it must still receive an explicit noindex signal.
+        source: "/api/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
     ];

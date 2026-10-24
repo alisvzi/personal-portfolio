@@ -113,8 +113,8 @@ function ExperienceNode({
       >
         <div className="flex flex-col gap-1.5 md:flex-row md:items-baseline md:justify-between md:gap-6">
           <h3
-            className="text-safe font-semibold text-text transition-colors duration-200 group-hover:text-accent"
-            style={{ fontSize: "var(--fs-1)", lineHeight: 1.2 }}
+            className="text-safe min-w-0 font-semibold text-text transition-colors duration-200 group-hover:text-accent"
+            style={{ fontSize: "var(--fs-1)", lineHeight: "var(--lh-title)" }}
           >
             {job.title}
           </h3>

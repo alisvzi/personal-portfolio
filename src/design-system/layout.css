@@ -189,6 +189,25 @@
  * overlap impossible.
  */
 
+/*
+ * Chapter content that is taller than its panel.
+ *
+ * `.horizontal-panel` centres its child with `justify-content: safe center`,
+ * which is the right behaviour: centre when it fits, fall back to the start edge
+ * when it does not. The `safe` keyword was missing one level down — the chapter
+ * `<section>` centres its shell with plain `align-items: center`, so a shell
+ * taller than the viewport (the work chapter with two featured projects, for
+ * example) was centred *and clipped*: half the overflow went above the panel's
+ * padding, taking the section heading with it.
+ *
+ * `align-items: safe center` keeps the centring but never lets the content
+ * escape upwards. Anything that does not fit now starts below the top padding
+ * and scrolls down, which is the only reachable arrangement.
+ */
+.horizontal-panel > section {
+  align-items: safe center;
+}
+
 /* ---- Content safety: long words / RTL never break the layout ---- */
 .text-safe {
   overflow-wrap: anywhere;

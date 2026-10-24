@@ -41,7 +41,14 @@ export async function proxy(request: NextRequest) {
   const [first, ...rest] = segments;
 
   if (!isLocale(first)) {
-    // No (or unknown) locale prefix: send the visitor to the default locale.
+    // If the first segment looks like a locale code but is not one of the
+    // supported locales, returning 404 is cleaner than a redirect-to-404
+    // (`/xx` → `/fa/xx` → 404). Paths with no prefix at all still redirect
+    // to the default locale, preserving the bookmark-friendly behaviour.
+    if (first && /^[a-z]{2}$/i.test(first)) {
+      return new NextResponse(null, { status: 404 });
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = `/${defaultLocale}${pathname === "/" ? "" : pathname}`;
     return NextResponse.redirect(url, 308);

@@ -92,6 +92,9 @@ export interface Content {
   heroSubtitleFa?: string;
   heroDescriptionFa?: string;
   aboutTextFa?: string;
+
+  /** ISO timestamp of the last content edit, for the sitemap and JSON-LD. */
+  updatedAt?: string;
 }
 
 export interface Message {

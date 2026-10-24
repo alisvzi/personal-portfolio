@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { getDictionary } from "@/i18n";
 import { isLocale } from "@/i18n/config";
+import { getAdminAccount } from "@/lib/data";
 
 /**
  * Admin dashboard.
@@ -36,10 +37,12 @@ export default async function AdminPage({
   if (!isLocale(locale)) notFound();
 
   const dict = getDictionary(locale);
+  const account = await getAdminAccount();
 
   return (
     <AdminLayout
       locale={locale}
+      currentEmail={account?.email ?? ""}
       labels={{
         title: dict.admin.title,
         logout: dict.admin.logout,
@@ -52,6 +55,7 @@ export default async function AdminPage({
         experiences: dict.admin.experiences,
         content: dict.admin.content,
         messages: dict.admin.messages,
+        account: dict.admin.account,
       }}
     />
   );

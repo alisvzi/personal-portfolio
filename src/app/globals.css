@@ -4,6 +4,15 @@
 @import "../design-system/motion.css";
 @import "../design-system/layout.css";
 
+/*
+ * Automatic content detection scans every non-ignored file in the project,
+ * Markdown included. The notes under `.workbuddy-ai` quote utility syntax in
+ * prose, and one such quote (`tracking-[var(--ls-…)]` written with a wildcard)
+ * was compiled into a rule with a literal `*` in it — invalid CSS that failed
+ * the build. Documentation is not markup; keep it out of the scan.
+ */
+@source not "../../.workbuddy-ai";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -107,6 +116,50 @@
   --app-gray-light: oklch(0.9 0 0);
   --app-gray: oklch(0.7 0 0);
   --app-gray-dark: oklch(0.5 0 0);
+
+  /*
+   * Letter-spacing scale.
+   *
+   * Letter-spacing is a Latin typographic device: it is what makes a small
+   * uppercase label or a tight display heading read the way it does. Persian
+   * is a cursive script — every letter is joined to the next — so the same
+   * value does not "open up" the line, it *breaks the joins* and leaves a word
+   * looking like scattered glyphs.
+   *
+   * Components therefore never hard-code a tracking value; they reference one
+   * of these (`tracking-[var(--ls-eyebrow)]`). The Persian block below sets them
+   * all to `normal`, which is the only correct value for connected script.
+   * Adding `tracking-[0.2em]` inline anywhere is what reintroduces the bug.
+   *
+   * The prefix is `--ls-`, not `--tracking-`: Tailwind owns that namespace for
+   * its own `tracking-*` utilities, and a same-named variable here would
+   * silently redefine `tracking-tight` / `tracking-wide` across the site.
+   */
+  --ls-eyebrow: 0.2em; /* small mono labels above a heading */
+  --ls-label: 0.18em; /* in-card category labels */
+  --ls-index: 0.25em; /* numeric section index (Latin digits only) */
+  --ls-button: 0.025em; /* button / CTA copy */
+  --ls-display: -0.03em; /* largest headings */
+  --ls-heading: -0.02em; /* section headings */
+  --ls-title: -0.01em; /* card titles */
+
+  /*
+   * Leading scale for display type.
+   *
+   * The values below are Latin values: at 48px a Latin heading set at 1.05
+   * leading looks deliberate, because Latin capitals and x-height sit well
+   * inside the em box. Vazirmatn does not: its ascenders, its descenders (ی، ج)
+   * and its stacked diacritics reach further than the em box allows, so the
+   * same 1.05 does not tighten the line — it lets the glyphs spill over the
+   * line box and collide with the line above or the element below, which is
+   * what "the title leaves its frame" actually looks like.
+   *
+   * Persian pages therefore get their own, looser scale. Same mechanism as the
+   * letter-spacing tokens: components never hard-code a line-height.
+   */
+  --lh-display: 1; /* hero name, page title */
+  --lh-heading: 1.05; /* section headings */
+  --lh-title: 1.2; /* card titles, subtitles */
 }
 
 @layer base {
@@ -115,23 +168,33 @@
   }
 
   /*
-   * Persian pages lead with Vazirmatn.
+   * Type stack — composed on <body>, deliberately.
    *
-   * `html[data-locale]` is set by the locale layout, so this is a pure CSS
-   * switch — no extra font request, no client-side class swap. English pages
-   * keep Geist first and only reach Vazirmatn for Persian glyphs.
+   * `next/font` declares `--font-geist-sans` and `--font-vazirmatn` on the
+   * <body> element (it attaches them through the class names passed in the
+   * layout). Composing the stack one level up — as a `--font-sans` override on
+   * <html> — resolved both names to nothing, because `var()` is resolved
+   * against the element the property is declared on and neither variable exists
+   * there. The declaration went invalid, the page fell back to the system UI
+   * font, and Persian was never actually rendered in Vazirmatn.
+   *
+   * Here, on <body>, both variables exist. Latin leads on English pages;
+   * `[data-locale="fa"]` flips the order so Persian glyphs get the Persian
+   * family first and Latin words inside Persian copy (React, Next.js) still
+   * resolve to Geist through per-glyph fallback.
    */
-  html[data-locale="fa"] {
-    --font-sans: var(--font-vazirmatn), var(--font-geist-sans), ui-sans-serif,
-      system-ui, sans-serif;
-  }
-
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-sans);
+    font-family: var(--font-geist-sans), var(--font-vazirmatn), ui-sans-serif,
+      system-ui, sans-serif;
     /* Persian glyphs sit lower than Latin ones; this keeps their baseline
        aligned with the Latin words that share the same line. */
     text-rendering: optimizeLegibility;
+  }
+
+  html[data-locale="fa"] body {
+    font-family: var(--font-vazirmatn), var(--font-geist-sans), ui-sans-serif,
+      system-ui, sans-serif;
   }
   .skeleton *:not(:has(*)):not(.target),
   .skeleton .target {
@@ -146,4 +209,117 @@
     content: url("data:image/svg;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAyNy41LjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiDQoJIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTEyOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8Zz4NCgk8cGF0aCBkPSJNMCw5NmMwLTM1LjMsMjguNy02NCw2NC02NGgzODRjMzUuMywwLDY0LDI4LjcsNjQsNjR2MzIwYzAsMzUuMy0yOC43LDY0LTY0LDY0SDY0Yy0zNS4zLDAtNjQtMjguNy02NC02NFY5NnogTTMyMy44LDIwMi41DQoJCWMtNC41LTYuNi0xMS45LTEwLjUtMTkuOC0xMC41cy0xNS40LDMuOS0xOS44LDEwLjVsLTg3LDEyNy42TDE3MC43LDI5N2MtNC42LTUuNy0xMS41LTktMTguNy05cy0xNC4yLDMuMy0xOC43LDlsLTY0LDgwDQoJCWMtNS44LDcuMi02LjksMTcuMS0yLjksMjUuNFM3OC44LDQxNiw4OCw0MTZoOTZoMzJoMjA4YzguOSwwLDE3LjEtNC45LDIxLjItMTIuOHMzLjYtMTcuNC0xLjQtMjQuN0wzMjMuOCwyMDIuNUwzMjMuOCwyMDIuNXoNCgkJIE0xMTIsMTkyYzI2LjUxLDAsNDgtMjEuNDksNDgtNDhzLTIxLjQ5LTQ4LTQ4LTQ4cy00OCwyMS40OS00OCw0OFM4NS40OSwxOTIsMTEyLDE5MnoiLz4NCjwvZz4NCjwvc3ZnPg0KYII=");
     @apply absolute inset-0 bg-gray-200 flex items-center justify-center text-black;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Persian typography
+ *
+ * Two rules, both about the script rather than the design:
+ *
+ * 1. No letter-spacing. Persian joins every letter to its neighbour, so any
+ *    positive or negative tracking value does not open the line — it pulls the
+ *    joins apart (or crushes them) and the word stops reading as one word. All
+ *    of the tracking tokens are therefore reset to `normal` here, which is what
+ *    makes `توسعه‌دهنده فرانت‌اند` look typeset instead of assembled.
+ *
+ * 2. Looser leading. Persian has deeper descenders and taller diacritic marks
+ *    than Latin at the same optical size, so a Latin-tuned line-height crowds
+ *    consecutive lines. Body copy gets a little more room.
+ *
+ * The block is deliberately *unlayered*: utilities live in `@layer utilities`,
+ * and unlayered declarations win over any layer regardless of specificity, so a
+ * stray `tracking-*` class on a Persian element still cannot break the script.
+ * ------------------------------------------------------------------ */
+html[data-locale="fa"] {
+  --ls-eyebrow: normal;
+  --ls-label: normal;
+  /* Kept: the chapter index is Latin digits ("01"), where tracking still reads
+     as a deliberate design detail rather than a broken word. */
+  --ls-index: 0.25em;
+  --ls-button: normal;
+  --ls-display: normal;
+  --ls-heading: normal;
+  --ls-title: normal;
+
+  --lh-display: 1.18;
+  --lh-heading: 1.35;
+  --lh-title: 1.5;
+
+  /* Belt and braces: catches any tracking value written inline later. */
+  letter-spacing: normal;
+}
+
+/* Scoped to prose only: `.text-safe` is the class the long-form copy already
+   carries (hero, about, project and experience descriptions). Badges, chips and
+   nav labels are deliberately left alone so their compact rhythm survives. */
+html[data-locale="fa"] p.text-safe {
+  line-height: 1.9;
+}
+
+/* Persian is not hyphenated: the browser has no dictionary for it, and a break
+   inserted by `hyphens: auto` lands mid-word. */
+html[data-locale="fa"] .text-safe {
+  hyphens: manual;
+}
+
+/* ------------------------------------------------------------------ *
+ * Persian numerals
+ *
+ * Counts, years and prices arrive from the database and from `interpolate()`
+ * as ASCII digits, so a Persian sentence ends up reading "حداقل 12 کاراکتر"
+ * with a Latin 12 wedged into it. Rather than localise at every call site,
+ * the font does it: Vazirmatn ships `ss01`, which swaps U+0030–U+0039 for the
+ * Persian forms of the same width. Measured on the variable RD cut, "0123456789"
+ * is 224.81px without the feature and 208.02px with it — exactly the width of
+ * "۰۱۲۳۴۵۶۷۸۹" — while Persian and Latin *letters* are byte-for-byte unchanged
+ * in width, so the feature touches digits and nothing else.
+ *
+ * The reset below is the other half of the decision. Some digits are data, not
+ * prose: a typed password, an e-mail address, a URL, a code sample. Rendering
+ * "۱۲۳" back at someone who typed "123" is a bug, so form controls, code and
+ * anything explicitly marked `dir="ltr"` keep their ASCII digits.
+ * ------------------------------------------------------------------ */
+html[data-locale="fa"] body {
+  font-feature-settings: "ss01";
+}
+
+html[data-locale="fa"]
+  :is(
+    input,
+    textarea,
+    select,
+    option,
+    code,
+    kbd,
+    pre,
+    samp,
+    time,
+    [dir="ltr"],
+    .tabular-nums
+  ) {
+  font-feature-settings: "ss01" 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Persian inside monospace
+ *
+ * `--font-mono` expands to `"Geist Mono", "Geist Mono Fallback", vazirmatn, …`.
+ * next/font always emits that middle face as `local(Arial)`, and on Windows
+ * Arial answers for Arabic script through font linking — so a Persian label in
+ * a monospace element was painted in Tahoma and never reached Vazirmatn, even
+ * though Vazirmatn sits in the same stack.
+ *
+ * Re-declaring the stack with the Persian face inserted *before* the metric
+ * fallback keeps both halves correct: Latin, digits and code stay in Geist
+ * Mono, Persian resolves to Vazirmatn, and `local(Arial)` remains as the last
+ * resort if the Persian file ever fails to load.
+ *
+ * `"Geist Mono"` is spelled out because `var(--font-geist-mono)` bundles the
+ * family together with its fallback and cannot be split. The selector is the
+ * attribute form of `.font-mono` so it cannot be confused with the utility of
+ * the same name.
+ * ------------------------------------------------------------------ */
+html[data-locale="fa"] [class~="font-mono"] {
+  font-family: "Geist Mono", var(--font-vazirmatn), ui-monospace,
+    SFMono-Regular, Menlo, monospace;
 }

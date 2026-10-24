@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 
-import { NAVIGATION_ITEMS } from "@/lib/constants";
-import { interpolate } from "@/i18n/format";
 import type { Dictionary } from "@/i18n/dictionaries/en";
+import { interpolate } from "@/i18n/format";
+import { NAVIGATION_ITEMS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 import { useChapters } from "./HorizontalScroller";
@@ -74,7 +74,7 @@ export function ChapterNav({ labels }: ChapterNavProps) {
                 />
               )}
               <span className="font-mono text-[0.6rem] tabular-nums opacity-60">
-                {String(i + 1).padStart(2, "0")}
+                {String(i).padStart(2, "0")}
               </span>
               <span className="hidden text-xs font-medium whitespace-nowrap sm:inline">
                 {label}
